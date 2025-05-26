@@ -19,11 +19,11 @@ if [ -f .env ]; then
 fi
 
 # Copy from template
-if [ -f env.example ]; then
-    cp env.example .env
-    echo -e "${GREEN}Created .env file from env.example${NC}"
+if [ -f .env.example ]; then
+    cp .env.example .env
+    echo -e "${GREEN}Created .env file from .env.example${NC}"
 else
-    echo -e "${RED}Error: env.example file not found${NC}"
+    echo -e "${RED}Error: .env.example file not found${NC}"
     exit 1
 fi
 

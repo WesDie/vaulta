@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Backend",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/src/server.ts",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx"],
+      "env": {
+        "NODE_ENV": "development",
+        "DATABASE_URL": "postgresql://vaulta:vaulta123@localhost:5432/vaulta",
+        "JWT_SECRET": "your-secret-key-change-this-in-production",
+        "PORT": "8000"
+      },
+      "console": "integratedTerminal",
+      "restart": true,
+      "protocol": "inspector",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug Backend (with DB)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/src/server.ts",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx"],
+      "env": {
+        "NODE_ENV": "development",
+        "DATABASE_URL": "postgresql://vaulta:vaulta123@localhost:5432/vaulta",
+        "JWT_SECRET": "your-secret-key-change-this-in-production",
+        "PORT": "8000"
+      },
+      "console": "integratedTerminal",
+      "restart": true,
+      "protocol": "inspector",
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "Start Database Only"
+    }
+  ]
+}

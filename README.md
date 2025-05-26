@@ -43,7 +43,7 @@ chmod +x dev.sh
 
    ```bash
    cd vaulta
-   cp env.example .env
+   cp .env.example .env
    ```
 
 2. **Start with Docker**:
@@ -132,6 +132,11 @@ This project includes VS Code configuration for an optimal development experienc
 
 The project includes extension recommendations that will be suggested when you open the project in VS Code.
 
+#### Project Settings
+
+- `settings.json` - User-specific settings (ignored by git)
+- `settings.project.json` - Shared project settings for consistent development experience
+
 ### Development Commands
 
 ```bash
@@ -164,7 +169,8 @@ npm run lint               # Lint code
 ├── .vscode/               # VS Code configuration
 │   ├── tasks.json         # Quick action tasks
 │   ├── launch.json        # Debug configurations
-│   ├── settings.json      # Project settings
+│   ├── settings.json      # User-specific settings (gitignored)
+│   ├── settings.project.json # Shared project settings
 │   └── extensions.json    # Recommended extensions
 ├── frontend/              # Next.js application
 │   ├── src/
@@ -191,7 +197,7 @@ npm run lint               # Lint code
 │   └── db/                # PostgreSQL data
 ├── docker-compose.yml     # Docker services
 ├── dev.sh                 # Development helper script
-├── env.example            # Environment variables template
+├── .env.example           # Environment variables template
 └── README.md
 ```
 
@@ -205,7 +211,7 @@ npm run lint               # Lint code
 
 ## Environment Variables
 
-Copy `env.example` to `.env` and modify as needed:
+Copy `.env.example` to `.env` and modify as needed:
 
 ```bash
 # Database Configuration
