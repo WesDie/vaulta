@@ -21,10 +21,31 @@ async function buildServer() {
   try {
     // Register plugins
     await fastify.register(cors, {
-      origin:
-        process.env.NODE_ENV === "development"
-          ? ["http://localhost:3000", "http://127.0.0.1:3000"]
-          : process.env.CORS_ORIGIN || false,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Define allowed origins
+        const allowedOrigins = [
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "http://localhost:3001", // Additional frontend port if needed
+        ];
+
+        // If NODE_ENV is production, also check CORS_ORIGIN environment variable
+        if (process.env.NODE_ENV === "production" && process.env.CORS_ORIGIN) {
+          allowedOrigins.push(process.env.CORS_ORIGIN);
+        }
+
+        if (
+          allowedOrigins.includes(origin) ||
+          process.env.NODE_ENV !== "production"
+        ) {
+          return callback(null, true);
+        }
+
+        return callback(new Error("Not allowed by CORS"), false);
+      },
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
     });

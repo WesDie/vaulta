@@ -65,10 +65,11 @@ export function MediaModal({
 
   if (!isOpen || !media) return null;
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  const optimizedImageUrl = `${apiUrl}/api/media/${media.id}/image?size=thumb`;
-  const fullImageUrl = `${apiUrl}/api/media/${media.id}/image?size=full`;
-  const originalUrl = `${apiUrl}/originals/${media.filename}`;
+  // Use relative URLs for image optimization to work with Docker network
+  // The Next.js rewrites will handle routing these to the backend
+  const optimizedImageUrl = `/api/media/${media.id}/image?size=thumb`;
+  const fullImageUrl = `/api/media/${media.id}/image?size=full`;
+  const originalUrl = `/originals/${media.filename}`;
   const isImage = media.mimeType.startsWith("image/");
   const isVideo = media.mimeType.startsWith("video/");
 
@@ -111,7 +112,7 @@ export function MediaModal({
       {hasPrevious && onPrevious && (
         <button
           onClick={onPrevious}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-2 text-white bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all"
+          className="absolute z-10 p-2 text-white transition-all transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full left-4 top-1/2 hover:bg-opacity-70"
         >
           <svg
             className="w-6 h-6"
@@ -132,7 +133,7 @@ export function MediaModal({
       {hasNext && onNext && (
         <button
           onClick={onNext}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-2 text-white bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all"
+          className="absolute z-10 p-2 text-white transition-all transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full right-4 top-1/2 hover:bg-opacity-70"
         >
           <svg
             className="w-6 h-6"
@@ -153,7 +154,7 @@ export function MediaModal({
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 p-2 text-white bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all"
+        className="absolute z-10 p-2 text-white transition-all bg-black bg-opacity-50 rounded-full top-4 right-4 hover:bg-opacity-70"
       >
         <svg
           className="w-6 h-6"
@@ -171,12 +172,12 @@ export function MediaModal({
       </button>
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl max-h-full mx-4 flex flex-col lg:flex-row bg-black rounded-lg overflow-hidden">
+      <div className="relative z-10 flex flex-col max-h-full mx-4 overflow-hidden bg-black rounded-lg max-w-7xl lg:flex-row">
         {/* Media viewer */}
-        <div className="flex-1 flex items-center justify-center relative bg-black">
+        <div className="relative flex items-center justify-center flex-1 bg-black">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-white rounded-full border-t-transparent animate-spin" />
             </div>
           )}
 
@@ -189,7 +190,7 @@ export function MediaModal({
                   alt={media.filename}
                   width={media.width || 800}
                   height={media.height || 600}
-                  className="max-w-full max-h-full object-contain"
+                  className="object-contain max-w-full max-h-full"
                   onLoad={handleThumbnailLoad}
                   onError={() => setIsLoading(false)}
                   priority
@@ -219,7 +220,7 @@ export function MediaModal({
                   alt={media.filename}
                   width={media.width || 800}
                   height={media.height || 600}
-                  className="absolute inset-0 max-w-full max-h-full object-contain"
+                  className="absolute inset-0 object-contain max-w-full max-h-full"
                   style={{ zIndex: -1 }}
                 />
               )}
@@ -244,7 +245,7 @@ export function MediaModal({
           <div className="space-y-6">
             {/* Basic info */}
             <div>
-              <h2 className="text-lg font-semibold mb-2 break-all">
+              <h2 className="mb-2 text-lg font-semibold break-all">
                 {media.filename}
               </h2>
               <div className="space-y-1 text-sm text-gray-300">
@@ -262,7 +263,7 @@ export function MediaModal({
             {/* EXIF Data */}
             {media.exifData && (
               <div>
-                <h3 className="font-semibold mb-2">Camera Info</h3>
+                <h3 className="mb-2 font-semibold">Camera Info</h3>
                 <div className="space-y-1 text-sm text-gray-300">
                   {media.exifData.camera && (
                     <p>Camera: {media.exifData.camera}</p>
@@ -288,7 +289,7 @@ export function MediaModal({
             {/* GPS Data */}
             {media.exifData?.gps && (
               <div>
-                <h3 className="font-semibold mb-2">Location</h3>
+                <h3 className="mb-2 font-semibold">Location</h3>
                 <div className="space-y-1 text-sm text-gray-300">
                   <p>Latitude: {media.exifData.gps.latitude.toFixed(6)}</p>
                   <p>Longitude: {media.exifData.gps.longitude.toFixed(6)}</p>
@@ -299,7 +300,7 @@ export function MediaModal({
             {/* Tags */}
             {media.tags && media.tags.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2">Tags</h3>
+                <h3 className="mb-2 font-semibold">Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {media.tags.map((tag) => (
                     <span
@@ -320,7 +321,7 @@ export function MediaModal({
             {/* Collections */}
             {media.collections && media.collections.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2">Collections</h3>
+                <h3 className="mb-2 font-semibold">Collections</h3>
                 <div className="space-y-1">
                   {media.collections.map((collection) => (
                     <div key={collection.id} className="text-sm text-gray-300">
@@ -343,14 +344,14 @@ export function MediaModal({
                   href={originalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  className="block w-full px-4 py-2 text-center transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
                 >
                   Open Original
                 </a>
                 <a
                   href={originalUrl}
                   download={media.filename}
-                  className="block w-full text-center px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                  className="block w-full px-4 py-2 text-center transition-colors bg-green-600 rounded-lg hover:bg-green-700"
                 >
                   Download
                 </a>

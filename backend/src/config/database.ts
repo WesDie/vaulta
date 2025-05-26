@@ -4,16 +4,32 @@ import * as path from "path";
 
 dotenv.config({ path: path.join(__dirname, "../../../.env") });
 
-const pool = new Pool({
-  host: process.env.POSTGRES_HOST || "localhost",
-  port: parseInt(process.env.POSTGRES_PORT || "5432"),
-  database: process.env.POSTGRES_DB || "vaulta",
-  user: process.env.POSTGRES_USER || "vaulta",
-  password: process.env.POSTGRES_PASSWORD || "vaulta123",
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+// Parse DATABASE_URL if provided, otherwise use individual environment variables
+let poolConfig;
+
+if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL for Docker deployment
+  poolConfig = {
+    connectionString: process.env.DATABASE_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
+} else {
+  // Use individual environment variables for local development
+  poolConfig = {
+    host: process.env.POSTGRES_HOST || "localhost",
+    port: parseInt(process.env.POSTGRES_PORT || "5432"),
+    database: process.env.POSTGRES_DB || "vaulta",
+    user: process.env.POSTGRES_USER || "vaulta",
+    password: process.env.POSTGRES_PASSWORD || "vaulta123",
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
+}
+
+const pool = new Pool(poolConfig);
 
 export const db = {
   query: async (text: string, params?: any[]) => {

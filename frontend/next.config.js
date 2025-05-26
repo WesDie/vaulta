@@ -2,7 +2,6 @@
 const nextConfig = {
   output: "standalone",
   images: {
-    domains: ["localhost"],
     remotePatterns: [
       {
         protocol: "http",
@@ -16,14 +15,43 @@ const nextConfig = {
         port: "8000",
         pathname: "/originals/**",
       },
+      {
+        protocol: "http",
+        hostname: "backend",
+        port: "8000",
+        pathname: "/thumbs/**",
+      },
+      {
+        protocol: "http",
+        hostname: "backend",
+        port: "8000",
+        pathname: "/originals/**",
+      },
+      {
+        protocol: "http",
+        hostname: "backend",
+        port: "8000",
+        pathname: "/api/**",
+      },
     ],
   },
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    // Use INTERNAL_API_URL for server-side API rewrites when running in Docker
+    // This allows the Next.js server to communicate with the backend via Docker network
+    const apiUrl = process.env.INTERNAL_API_URL || "http://localhost:8000";
+
     return [
       {
         source: "/api/:path*",
         destination: `${apiUrl}/api/:path*`,
+      },
+      {
+        source: "/originals/:path*",
+        destination: `${apiUrl}/originals/:path*`,
+      },
+      {
+        source: "/thumbs/:path*",
+        destination: `${apiUrl}/thumbs/:path*`,
       },
     ];
   },

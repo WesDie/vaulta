@@ -23,14 +23,13 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
   const [thumbnailGenerated, setThumbnailGenerated] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-  // Always try to use the optimized image endpoint first
-  const optimizedImageUrl = `${apiUrl}/api/media/${media.id}/image?size=thumb`;
+  // Use relative URLs for image optimization to work with Docker network
+  // The Next.js rewrites will handle routing these to the backend
+  const optimizedImageUrl = `/api/media/${media.id}/image?size=thumb`;
 
   // Fallback to thumbnail path if the optimized endpoint doesn't work
   const thumbnailUrl = media.thumbnailPath
-    ? `${apiUrl}${media.thumbnailPath}`
+    ? `/api${media.thumbnailPath}`
     : null;
 
   const handleGenerateThumbnail = async () => {
@@ -87,13 +86,13 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
               loading="lazy"
             />
             {imageLoading && (
-              <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                <div className="w-8 h-8 border-b-2 border-blue-500 rounded-full animate-spin"></div>
               </div>
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-700">
+          <div className="flex flex-col items-center justify-center w-full h-full bg-gray-100 dark:bg-gray-700">
             {isVideo ? (
               <div className="text-center">
                 <div className="w-8 h-8 mb-2 text-gray-400">
@@ -148,7 +147,7 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
         )}
 
         {/* Overlay with metadata */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100">
+        <div className="absolute inset-0 flex flex-col justify-end p-3 transition-all duration-200 bg-black bg-opacity-0 opacity-0 group-hover:bg-opacity-50 group-hover:opacity-100">
           <div className="text-white">
             <h3 className="text-sm font-medium truncate">{media.filename}</h3>
             <p className="text-xs opacity-75">
@@ -165,7 +164,7 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
         {/* Tags indicator */}
         {media.tags && media.tags.length > 0 && (
           <div className="absolute top-2 right-2">
-            <div className="bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+            <div className="px-2 py-1 text-xs text-white bg-black bg-opacity-50 rounded">
               {media.tags.length} tag{media.tags.length !== 1 ? "s" : ""}
             </div>
           </div>
@@ -174,7 +173,7 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
         {/* Video indicator */}
         {isVideo && (
           <div className="absolute top-2 left-2">
-            <div className="bg-black bg-opacity-50 text-white p-1 rounded">
+            <div className="p-1 text-white bg-black bg-opacity-50 rounded">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
               </svg>

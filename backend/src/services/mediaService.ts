@@ -118,7 +118,10 @@ export class MediaService {
 
   async getMediaFileById(id: string): Promise<MediaFile | null> {
     const query = `
-      SELECT m.*, e.*
+      SELECT m.id, m.filename, m.original_path, m.thumbnail_path, m.file_size, 
+             m.mime_type, m.width, m.height, m.created_at, m.updated_at,
+             e.camera, e.lens, e.focal_length, e.aperture, e.shutter_speed, 
+             e.iso, e.date_taken, e.gps_latitude, e.gps_longitude
       FROM media_files m
       LEFT JOIN exif_data e ON m.id = e.media_file_id
       WHERE m.id = $1
