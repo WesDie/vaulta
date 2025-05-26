@@ -1,0 +1,40 @@
+{
+  "name": "vaulta",
+  "version": "1.0.0",
+  "description": "Self-Hosted Media Management Application",
+  "private": true,
+  "scripts": {
+    "setup": "./dev.sh setup",
+    "start": "./dev.sh start",
+    "dev": "./dev.sh dev",
+    "stop": "./dev.sh stop",
+    "clean": "./dev.sh clean",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:all": "npm run lint:backend && npm run lint:frontend",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "scan": "cd backend && npm run scan"
+  },
+  "keywords": [
+    "media",
+    "gallery",
+    "self-hosted",
+    "typescript",
+    "nextjs",
+    "fastify"
+  ],
+  "author": "Vaulta Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

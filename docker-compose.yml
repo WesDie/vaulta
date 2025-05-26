@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:15
+    container_name: vaulta-db
+    environment:
+      POSTGRES_DB: vaulta
+      POSTGRES_USER: vaulta
+      POSTGRES_PASSWORD: vaulta123
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+      - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vaulta-backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vaulta:vaulta123@db:5432/vaulta
+      JWT_SECRET: your-secret-key-change-this
+      PORT: 8000
+    volumes:
+      - ./data/originals:/app/data/originals
+      - ./data/thumbs:/app/data/thumbs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vaulta-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  media_originals:
+  media_thumbs:
