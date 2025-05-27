@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { MediaViewerProps } from "./types";
 import { useZoom } from "./useZoom";
@@ -8,12 +8,14 @@ interface MediaViewerComponentProps {
   media: any;
   isLoading: boolean;
   onLoadingChange: (loading: boolean) => void;
+  onHeightChange?: (height: number) => void;
 }
 
 export function MediaViewer({
   media,
   isLoading,
   onLoadingChange,
+  onHeightChange,
 }: MediaViewerComponentProps) {
   const [imageSize, setImageSize] = useState<"thumb" | "full">("thumb");
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
@@ -31,6 +33,31 @@ export function MediaViewer({
     containerRef,
   });
 
+  // Track container height changes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !onHeightChange) return;
+
+    const updateHeight = () => {
+      const height = container.offsetHeight;
+      onHeightChange(height);
+    };
+
+    // Initial height
+    updateHeight();
+
+    // Use ResizeObserver to track height changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [onHeightChange]);
+
   const optimizedImageUrl = `/api/media/${media.id}/image?size=thumb`;
   const originalUrl = `/originals/${media.filename}`;
   const isImage = media.mimeType.startsWith("image/");
@@ -41,10 +68,22 @@ export function MediaViewer({
     if (!fullImageLoaded) {
       setImageSize("full");
     }
+    // Update height after image loads
+    setTimeout(() => {
+      if (containerRef.current && onHeightChange) {
+        onHeightChange(containerRef.current.offsetHeight);
+      }
+    }, 100);
   };
 
   const handleFullImageLoad = () => {
     setFullImageLoaded(true);
+    // Update height after full image loads
+    setTimeout(() => {
+      if (containerRef.current && onHeightChange) {
+        onHeightChange(containerRef.current.offsetHeight);
+      }
+    }, 100);
   };
 
   return (
@@ -134,7 +173,15 @@ export function MediaViewer({
           src={originalUrl}
           controls
           className="max-w-full max-h-[80vh] rounded-none"
-          onLoadedData={() => onLoadingChange(false)}
+          onLoadedData={() => {
+            onLoadingChange(false);
+            // Update height after video loads
+            setTimeout(() => {
+              if (containerRef.current && onHeightChange) {
+                onHeightChange(containerRef.current.offsetHeight);
+              }
+            }, 100);
+          }}
           onError={() => onLoadingChange(false)}
         >
           Your browser does not support the video tag.

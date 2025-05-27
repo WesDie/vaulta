@@ -48,6 +48,11 @@ export const mediaApi = {
     const response = await api.delete(`/api/media/${id}`);
     return response.data;
   },
+
+  extractExif: async (id: string): Promise<ApiResponse<MediaFile>> => {
+    const response = await api.post(`/api/media/${id}/extract-exif`);
+    return response.data;
+  },
 };
 
 // Tags API

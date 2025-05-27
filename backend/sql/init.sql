@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS media_files (
 
 CREATE TABLE IF NOT EXISTS exif_data (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    media_file_id UUID REFERENCES media_files(id) ON DELETE CASCADE,
+    media_file_id UUID REFERENCES media_files(id) ON DELETE CASCADE UNIQUE,
     camera VARCHAR(255),
     lens VARCHAR(255),
     focal_length DECIMAL(5,2),
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS exif_data (
     date_taken TIMESTAMP WITH TIME ZONE,
     gps_latitude DECIMAL(10,8),
     gps_longitude DECIMAL(11,8),
+    raw_exif_data JSONB, -- Store complete EXIF data as JSON
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

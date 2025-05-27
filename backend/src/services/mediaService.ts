@@ -89,7 +89,8 @@ export class MediaService {
 
     // Get media files with pagination
     const dataQuery = `
-      SELECT DISTINCT m.*, e.camera, e.lens, e.date_taken
+      SELECT DISTINCT m.*, e.camera, e.lens, e.date_taken, e.focal_length, e.aperture, 
+             e.shutter_speed, e.iso, e.gps_latitude, e.gps_longitude, e.raw_exif_data
       FROM media_files m
       LEFT JOIN exif_data e ON m.id = e.media_file_id
       ${whereClause}
@@ -121,7 +122,7 @@ export class MediaService {
       SELECT m.id, m.filename, m.original_path, m.thumbnail_path, m.file_size, 
              m.mime_type, m.width, m.height, m.created_at, m.updated_at,
              e.camera, e.lens, e.focal_length, e.aperture, e.shutter_speed, 
-             e.iso, e.date_taken, e.gps_latitude, e.gps_longitude
+             e.iso, e.date_taken, e.gps_latitude, e.gps_longitude, e.raw_exif_data
       FROM media_files m
       LEFT JOIN exif_data e ON m.id = e.media_file_id
       WHERE m.id = $1
@@ -190,14 +191,150 @@ export class MediaService {
 
   async extractExifData(filePath: string, mediaId: string): Promise<void> {
     try {
-      const exifData = await exifr.parse(filePath);
-      if (!exifData) return;
+      console.log(`Extracting EXIF data from: ${filePath}`);
+
+      // Ensure we have the correct absolute path
+      let resolvedPath = filePath;
+      if (!path.isAbsolute(filePath)) {
+        // If the path is relative, resolve it relative to the originals directory
+        resolvedPath = path.resolve(
+          this.originalsPath,
+          path.basename(filePath)
+        );
+        console.log(`Resolved relative path to: ${resolvedPath}`);
+      }
+
+      // Check if file exists
+      try {
+        await fs.access(resolvedPath);
+        console.log(`File exists at: ${resolvedPath}`);
+      } catch (error) {
+        console.error(`File not found at: ${resolvedPath}`);
+        throw new Error(`File not found: ${resolvedPath}`);
+      }
+
+      // Extract all available EXIF data
+      const exifData = await exifr.parse(resolvedPath, {
+        translateKeys: false, // Keep original tag names
+        translateValues: false, // Keep original values
+        mergeOutput: false, // Keep separate IFD sections
+      });
+
+      console.log(
+        `EXIF data extracted:`,
+        exifData ? Object.keys(exifData) : "No EXIF data found"
+      );
+
+      if (!exifData) {
+        console.log(`No EXIF data found for ${resolvedPath}`);
+        return;
+      }
+
+      // Clean and prepare raw EXIF data for JSON storage
+      const cleanExifData = this.cleanExifDataForJson(exifData);
+
+      // Extract structured fields from the nested EXIF data
+      const camera = (() => {
+        const make =
+          exifData.Make || exifData.ifd0?.["271"] || exifData.ifd0?.Make;
+        const model =
+          exifData.Model || exifData.ifd0?.["272"] || exifData.ifd0?.Model;
+        if (make && model) {
+          return `${make} ${model}`.trim();
+        }
+        return make || model || null;
+      })();
+
+      const lens =
+        exifData.LensModel ||
+        exifData.exif?.["42036"] ||
+        exifData.exif?.LensModel ||
+        null;
+
+      const focalLength =
+        exifData.FocalLength ||
+        exifData.exif?.["37386"] ||
+        exifData.exif?.FocalLength ||
+        null;
+
+      const aperture =
+        exifData.FNumber ||
+        exifData.exif?.["33437"] ||
+        exifData.exif?.FNumber ||
+        null;
+
+      const shutterSpeed = (() => {
+        const exposureTime =
+          exifData.ExposureTime ||
+          exifData.exif?.["33434"] ||
+          exifData.exif?.ExposureTime;
+        if (exposureTime && exposureTime > 0) {
+          return `1/${Math.round(1 / exposureTime)}`;
+        }
+        return null;
+      })();
+
+      const iso =
+        exifData.ISO || exifData.exif?.["34855"] || exifData.exif?.ISO || null;
+
+      const dateTaken = (() => {
+        const dateTimeOriginal =
+          exifData.DateTimeOriginal ||
+          exifData.exif?.["36867"] ||
+          exifData.exif?.DateTimeOriginal;
+        const dateTime =
+          exifData.DateTime ||
+          exifData.ifd0?.["306"] ||
+          exifData.ifd0?.DateTime;
+        return dateTimeOriginal || dateTime || null;
+      })();
+
+      const latitude = exifData.latitude || exifData.gps?.latitude || null;
+
+      const longitude = exifData.longitude || exifData.gps?.longitude || null;
+
+      console.log(`Parsed EXIF values:`, {
+        camera,
+        lens,
+        focalLength,
+        aperture,
+        shutterSpeed,
+        iso,
+        dateTaken,
+        latitude,
+        longitude,
+        hasRawData: !!cleanExifData,
+      });
+
+      // Debug the cleanExifData before stringifying
+      console.log(
+        `About to stringify cleanExifData:`,
+        typeof cleanExifData,
+        Object.keys(cleanExifData || {})
+      );
+
+      let rawExifDataString;
+      try {
+        rawExifDataString = JSON.stringify(cleanExifData);
+        console.log(
+          `Successfully stringified EXIF data, length: ${rawExifDataString.length}`
+        );
+      } catch (stringifyError) {
+        console.error(`Failed to stringify cleanExifData:`, stringifyError);
+        rawExifDataString = JSON.stringify({
+          error: "Failed to serialize EXIF data",
+          message:
+            stringifyError instanceof Error
+              ? stringifyError.message
+              : "Unknown error",
+        });
+      }
 
       const insertQuery = `
         INSERT INTO exif_data (
           media_file_id, camera, lens, focal_length, aperture, 
-          shutter_speed, iso, date_taken, gps_latitude, gps_longitude
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          shutter_speed, iso, date_taken, gps_latitude, gps_longitude, raw_exif_data
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (media_file_id) DO UPDATE SET
           camera = EXCLUDED.camera,
           lens = EXCLUDED.lens,
@@ -207,25 +344,165 @@ export class MediaService {
           iso = EXCLUDED.iso,
           date_taken = EXCLUDED.date_taken,
           gps_latitude = EXCLUDED.gps_latitude,
-          gps_longitude = EXCLUDED.gps_longitude
+          gps_longitude = EXCLUDED.gps_longitude,
+          raw_exif_data = EXCLUDED.raw_exif_data
       `;
 
       await db.query(insertQuery, [
         mediaId,
-        exifData.Make ? `${exifData.Make} ${exifData.Model}`.trim() : null,
-        exifData.LensModel || null,
-        exifData.FocalLength || null,
-        exifData.FNumber || null,
-        exifData.ExposureTime
-          ? `1/${Math.round(1 / exifData.ExposureTime)}`
-          : null,
-        exifData.ISO || null,
-        exifData.DateTimeOriginal || exifData.DateTime || null,
-        exifData.latitude || null,
-        exifData.longitude || null,
+        camera,
+        lens,
+        focalLength,
+        aperture,
+        shutterSpeed,
+        iso,
+        dateTaken,
+        latitude,
+        longitude,
+        rawExifDataString, // Use the safely stringified data
       ]);
+
+      console.log(`EXIF data successfully stored for media ID: ${mediaId}`);
     } catch (error) {
       console.error("Error extracting EXIF data:", error);
+      throw error; // Re-throw to let the caller handle it
+    }
+  }
+
+  private cleanExifDataForJson(exifData: any): Record<string, any> {
+    const cleaned: Record<string, any> = {};
+
+    const cleanValue = (value: any, keyPath: string = ""): any => {
+      try {
+        if (value === null || value === undefined) {
+          return null;
+        }
+
+        // Handle Buffer objects (convert to base64 or description)
+        if (Buffer.isBuffer(value)) {
+          // For small buffers, convert to base64, for large ones just note their presence
+          if (value.length < 1024) {
+            return {
+              type: "buffer",
+              data: value.toString("base64"),
+              length: value.length,
+            };
+          } else {
+            return {
+              type: "buffer",
+              length: value.length,
+              description: "Binary data (too large to store)",
+            };
+          }
+        }
+
+        // Handle Date objects
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+
+        // Handle arrays
+        if (Array.isArray(value)) {
+          return value.map((item, index) =>
+            cleanValue(item, `${keyPath}[${index}]`)
+          );
+        }
+
+        // Handle objects recursively
+        if (typeof value === "object" && value !== null) {
+          // Check for circular references or problematic objects
+          if (
+            value.constructor &&
+            value.constructor.name &&
+            !["Object", "Array"].includes(value.constructor.name)
+          ) {
+            console.log(
+              `Converting non-plain object at ${keyPath}:`,
+              value.constructor.name
+            );
+            // Try to convert to plain object
+            try {
+              const plainObj = JSON.parse(JSON.stringify(value));
+              return plainObj;
+            } catch (e) {
+              console.warn(
+                `Failed to serialize object at ${keyPath}, converting to string:`,
+                e instanceof Error ? e.message : String(e)
+              );
+              return `[${value.constructor.name}: ${String(value)}]`;
+            }
+          }
+
+          const cleanedObj: Record<string, any> = {};
+          for (const [key, val] of Object.entries(value)) {
+            try {
+              cleanedObj[key] = cleanValue(val, `${keyPath}.${key}`);
+            } catch (error) {
+              console.warn(
+                `Failed to clean value at ${keyPath}.${key}:`,
+                error
+              );
+              cleanedObj[key] = `[Error: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }]`;
+            }
+          }
+          return cleanedObj;
+        }
+
+        // Handle functions (convert to string representation)
+        if (typeof value === "function") {
+          return `[Function: ${value.name || "anonymous"}]`;
+        }
+
+        // Handle symbols
+        if (typeof value === "symbol") {
+          return value.toString();
+        }
+
+        // Handle bigint
+        if (typeof value === "bigint") {
+          return value.toString();
+        }
+
+        // Return primitive values as-is
+        return value;
+      } catch (error) {
+        console.warn(`Error cleaning value at ${keyPath}:`, error);
+        return `[Error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }]`;
+      }
+    };
+
+    try {
+      for (const [key, value] of Object.entries(exifData)) {
+        try {
+          cleaned[key] = cleanValue(value, key);
+        } catch (error) {
+          console.warn(`Failed to clean EXIF key ${key}:`, error);
+          cleaned[key] = `[Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }]`;
+        }
+      }
+
+      // Test if the cleaned data can be JSON stringified
+      JSON.stringify(cleaned);
+      console.log(
+        `Successfully cleaned EXIF data with keys:`,
+        Object.keys(cleaned)
+      );
+
+      return cleaned;
+    } catch (error) {
+      console.error("Failed to clean EXIF data for JSON:", error);
+      // Return a safe fallback
+      return {
+        error: "Failed to process EXIF data",
+        originalKeys: Object.keys(exifData || {}),
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 
@@ -446,24 +723,52 @@ export class MediaService {
     `;
     const collectionsResult = await db.query(collectionsQuery, [row.id]);
 
-    const exifData: ExifData | undefined = row.camera
-      ? {
-          camera: row.camera,
-          lens: row.lens,
-          focalLength: row.focal_length,
-          aperture: row.aperture,
-          shutterSpeed: row.shutter_speed,
-          iso: row.iso,
-          dateTaken: row.date_taken,
-          gps:
-            row.gps_latitude && row.gps_longitude
-              ? {
-                  latitude: parseFloat(row.gps_latitude),
-                  longitude: parseFloat(row.gps_longitude),
-                }
+    const exifData: ExifData | undefined =
+      row.camera ||
+      row.lens ||
+      row.focal_length ||
+      row.aperture ||
+      row.shutter_speed ||
+      row.iso ||
+      row.date_taken ||
+      row.gps_latitude ||
+      row.gps_longitude ||
+      row.raw_exif_data
+        ? {
+            camera: row.camera,
+            lens: row.lens,
+            focalLength: row.focal_length,
+            aperture: row.aperture,
+            shutterSpeed: row.shutter_speed,
+            iso: row.iso,
+            dateTaken: row.date_taken,
+            gps:
+              row.gps_latitude && row.gps_longitude
+                ? {
+                    latitude: parseFloat(row.gps_latitude),
+                    longitude: parseFloat(row.gps_longitude),
+                  }
+                : undefined,
+            rawExifData: row.raw_exif_data
+              ? (() => {
+                  try {
+                    // If it's already an object, return it directly
+                    if (typeof row.raw_exif_data === "object") {
+                      return row.raw_exif_data;
+                    }
+                    // If it's a string, try to parse it
+                    return JSON.parse(row.raw_exif_data);
+                  } catch (error) {
+                    console.error(
+                      `Failed to parse raw_exif_data for media ${row.id}:`,
+                      error
+                    );
+                    return { error: "Invalid EXIF data format" };
+                  }
+                })()
               : undefined,
-        }
-      : undefined;
+          }
+        : undefined;
 
     return {
       id: row.id,

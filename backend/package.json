@@ -8,6 +8,7 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "migrate": "node dist/migrate.js",
+    "migrate:exif": "tsx src/scripts/addRawExifColumn.ts",
     "scan": "tsx src/scripts/scanMedia.ts",
     "generate-thumbs": "tsx src/scripts/generateThumbnails.ts",
     "lint": "eslint src --ext .ts",

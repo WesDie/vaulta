@@ -26,6 +26,7 @@ export interface ExifData {
     latitude: number;
     longitude: number;
   };
+  rawExifData?: Record<string, any>; // Complete EXIF data
 }
 
 export interface Tag {

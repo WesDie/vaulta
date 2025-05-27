@@ -31,6 +31,7 @@ export interface MetadataSidebarProps {
   media: MediaFile;
   showMetadata: boolean;
   onClose: () => void;
+  imageContainerHeight?: number;
 }
 
 export interface MediaControlsProps {

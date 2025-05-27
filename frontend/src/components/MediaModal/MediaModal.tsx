@@ -20,6 +20,7 @@ export function MediaModal({
   const [isLoading, setIsLoading] = useState(true);
   const [showMetadata, setShowMetadata] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [imageContainerHeight, setImageContainerHeight] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -169,6 +170,7 @@ export function MediaModal({
             media={media}
             isLoading={isLoading}
             onLoadingChange={setIsLoading}
+            onHeightChange={setImageContainerHeight}
           />
         </div>
 
@@ -177,6 +179,7 @@ export function MediaModal({
           media={media}
           showMetadata={showMetadata}
           onClose={onClose}
+          imageContainerHeight={imageContainerHeight}
         />
       </div>
 

@@ -12,6 +12,75 @@ A fullstack web application for browsing, tagging, and organizing high-resolutio
 - Fast thumbnail generation
 - Token-protected REST API
 
+## Enhanced EXIF Data Support
+
+Vaulta now includes comprehensive EXIF metadata extraction and storage for uploaded images. This feature provides both structured metadata for common camera settings and complete raw EXIF data for advanced users.
+
+### Features
+
+- **Automatic EXIF Extraction**: All EXIF metadata is automatically extracted during image upload
+- **Structured Data**: Common camera settings (camera, lens, aperture, ISO, etc.) are stored in structured database fields
+- **Complete Raw Data**: All available EXIF tags are stored as JSON for comprehensive metadata access
+- **Frontend Display**: Metadata is beautifully displayed in the image viewer sidebar with collapsible sections
+- **Re-extraction**: Manual EXIF re-extraction for existing images via the UI
+
+### EXIF Data Includes
+
+**Structured Fields:**
+
+- Camera make and model
+- Lens information
+- Focal length
+- Aperture (f-stop)
+- Shutter speed
+- ISO sensitivity
+- Date taken
+- GPS coordinates (if available)
+
+**Raw EXIF Data:**
+
+- All IFD (Image File Directory) sections
+- Manufacturer-specific tags
+- Technical metadata
+- Color space information
+- And much more...
+
+### Usage
+
+1. **Upload Images**: EXIF data is automatically extracted during upload
+2. **View Metadata**: Click the info button in the image viewer to see all metadata
+3. **Expand Sections**: Click on any EXIF section to view detailed technical data
+4. **Re-extract**: Use the "Re-extract" button to update EXIF data for existing images
+
+### Migration for Existing Installations
+
+If you have an existing Vaulta installation, run the migration to add EXIF support:
+
+```bash
+# Backend migration
+cd backend
+npm run migrate:exif
+```
+
+This will:
+
+- Add the `raw_exif_data` column to the database
+- Re-extract EXIF data for all existing images
+- Add necessary database constraints
+
+### API Endpoints
+
+- `POST /api/media/:id/extract-exif` - Re-extract EXIF data for a specific image
+- EXIF data is included in all media file responses
+
+### Technical Details
+
+- Uses the `exifr` library for comprehensive EXIF extraction
+- Stores structured data in PostgreSQL columns for fast queries
+- Stores complete raw data as JSONB for flexibility
+- Handles binary data and complex objects safely
+- Supports all major image formats (JPEG, TIFF, etc.)
+
 ## Tech Stack
 
 - **Frontend**: Next.js 14 + TypeScript + Tailwind CSS

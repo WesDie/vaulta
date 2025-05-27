@@ -249,6 +249,77 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Re-extract EXIF data for a media file
+  fastify.post(
+    "/media/:id/extract-exif",
+    async (
+      request: FastifyRequest<{
+        Params: { id: string };
+      }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const { id } = request.params;
+        console.log(`Extract EXIF request for media ID: ${id}`);
+
+        const mediaFile = await mediaService.getMediaFileById(id);
+        if (!mediaFile) {
+          console.log(`Media file not found: ${id}`);
+          reply.status(404).send({
+            success: false,
+            error: "Media file not found",
+          });
+          return;
+        }
+
+        console.log(`Media file found:`, {
+          id: mediaFile.id,
+          filename: mediaFile.filename,
+          originalPath: mediaFile.originalPath,
+          mimeType: mediaFile.mimeType,
+        });
+
+        if (!mediaFile.mimeType.startsWith("image/")) {
+          console.log(`Not an image file: ${mediaFile.mimeType}`);
+          reply.status(400).send({
+            success: false,
+            error: "EXIF data can only be extracted from images",
+          });
+          return;
+        }
+
+        console.log(`Starting EXIF extraction for: ${mediaFile.originalPath}`);
+        await mediaService.extractExifData(mediaFile.originalPath, id);
+        console.log(`EXIF extraction completed for: ${mediaFile.originalPath}`);
+
+        // Get updated media file with new EXIF data
+        const updatedMediaFile = await mediaService.getMediaFileById(id);
+        console.log(`Updated media file:`, {
+          id: updatedMediaFile?.id,
+          hasExifData: !!updatedMediaFile?.exifData,
+          exifDataKeys: updatedMediaFile?.exifData
+            ? Object.keys(updatedMediaFile.exifData)
+            : [],
+        });
+
+        reply.send({
+          success: true,
+          data: updatedMediaFile,
+          message: "EXIF data extracted successfully",
+        });
+      } catch (error) {
+        console.error("Error in extract-exif route:", error);
+        fastify.log.error(error);
+        reply.status(500).send({
+          success: false,
+          error: `Failed to extract EXIF data: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
+      }
+    }
+  );
+
   // Upload media file
   fastify.post(
     "/media/upload",
