@@ -293,6 +293,68 @@ export class MediaService {
     return (await this.getMediaFileById(mediaId)) as MediaFile;
   }
 
+  async deleteMediaFile(id: string): Promise<boolean> {
+    const mediaFile = await this.getMediaFileById(id);
+    if (!mediaFile) {
+      return false;
+    }
+
+    try {
+      // Start a transaction
+      await db.query("BEGIN");
+
+      // Delete from related tables first (due to foreign key constraints)
+      await db.query("DELETE FROM media_tags WHERE media_file_id = $1", [id]);
+      await db.query("DELETE FROM media_collections WHERE media_file_id = $1", [
+        id,
+      ]);
+      await db.query("DELETE FROM exif_data WHERE media_file_id = $1", [id]);
+
+      // Delete the main record
+      await db.query("DELETE FROM media_files WHERE id = $1", [id]);
+
+      // Delete physical files
+      try {
+        // Delete original file
+        await fs.unlink(mediaFile.originalPath);
+      } catch (error) {
+        console.warn(
+          `Failed to delete original file: ${mediaFile.originalPath}`,
+          error
+        );
+      }
+
+      // Delete thumbnail file if it exists
+      if (mediaFile.thumbnailPath) {
+        try {
+          const thumbnailFilename = mediaFile.thumbnailPath.replace(
+            "/thumbs/",
+            ""
+          );
+          const fullThumbnailPath = path.join(
+            this.thumbsPath,
+            thumbnailFilename
+          );
+          await fs.unlink(fullThumbnailPath);
+        } catch (error) {
+          console.warn(
+            `Failed to delete thumbnail file: ${mediaFile.thumbnailPath}`,
+            error
+          );
+        }
+      }
+
+      // Commit the transaction
+      await db.query("COMMIT");
+      return true;
+    } catch (error) {
+      // Rollback on error
+      await db.query("ROLLBACK");
+      console.error("Error deleting media file:", error);
+      return false;
+    }
+  }
+
   async scanMediaDirectory(): Promise<{ scanned: number; added: number }> {
     const { scanDirectory } = await import("../scripts/scanMedia");
 

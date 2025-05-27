@@ -281,6 +281,39 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Delete media file
+  fastify.delete(
+    "/media/:id",
+    async (
+      request: FastifyRequest<{ Params: { id: string } }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const { id } = request.params;
+        const result = await mediaService.deleteMediaFile(id);
+
+        if (!result) {
+          reply.status(404).send({
+            success: false,
+            error: "Media file not found or failed to delete",
+          });
+          return;
+        }
+
+        reply.send({
+          success: true,
+          message: "Media file deleted successfully",
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        reply.status(500).send({
+          success: false,
+          error: "Failed to delete media file",
+        });
+      }
+    }
+  );
+
   // Scan media directory
   fastify.post(
     "/media/scan",
