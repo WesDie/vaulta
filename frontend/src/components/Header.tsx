@@ -162,17 +162,6 @@ export function Header({
             ))}
           </div>
 
-          {/* Sort Options */}
-          <select
-            value={filters.sortBy}
-            onChange={(e) => onFiltersChange({ sortBy: e.target.value as any })}
-            className="text-sm border-0 input bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100"
-          >
-            <option value="createdAt">Latest</option>
-            <option value="filename">Name</option>
-            <option value="fileSize">Size</option>
-          </select>
-
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
