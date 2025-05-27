@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { gsap } from "gsap";
 import { FilterState, ViewMode, MediaFile } from "@/types";
 import { useMediaFiles } from "@/hooks/useMedia";
 import { MediaCard } from "./MediaCard";
@@ -14,13 +15,13 @@ interface MediaGalleryProps {
 const getGridClasses = (size: string) => {
   switch (size) {
     case "small":
-      return "grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10";
+      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12";
     case "medium":
-      return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+      return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
     case "large":
-      return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
-    default:
       return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+    default:
+      return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
   }
 };
 
@@ -28,9 +29,33 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: response, isLoading, error } = useMediaFiles(filters);
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   const mediaFiles = response?.data || [];
   const gridClasses = getGridClasses(viewMode.size);
+
+  // Animate gallery items on load
+  useEffect(() => {
+    if (mediaFiles.length > 0 && galleryRef.current) {
+      const items = galleryRef.current.querySelectorAll(".media-item");
+      gsap.fromTo(
+        items,
+        {
+          opacity: 0,
+          y: 30,
+          scale: 0.9,
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          stagger: 0.05,
+          ease: "power3.out",
+        }
+      );
+    }
+  }, [mediaFiles]);
 
   const handleMediaSelect = (media: MediaFile) => {
     setSelectedMedia(media);
@@ -63,12 +88,15 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className={`grid ${gridClasses} gap-4`}>
+      <div className="p-8">
+        <div className="mb-8">
+          <div className="w-48 h-4 bg-gray-200 rounded dark:bg-gray-800 animate-pulse"></div>
+        </div>
+        <div className={`grid ${gridClasses} gap-6`}>
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse"
+              className="bg-gray-100 aspect-square dark:bg-gray-900 rounded-xl animate-pulse"
             />
           ))}
         </div>
@@ -78,10 +106,14 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
 
   if (error) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mb-4 text-gray-400 mx-auto">
-            <svg fill="currentColor" viewBox="0 0 20 20">
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-md text-center">
+          <div className="w-20 h-20 mx-auto mb-6 text-gray-300 dark:text-gray-700">
+            <svg
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              className="w-full h-full"
+            >
               <path
                 fillRule="evenodd"
                 d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -89,12 +121,19 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Failed to load media
+          <h3 className="mb-3 text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Something went wrong
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            There was an error loading your media files. Please try again.
+          <p className="leading-relaxed text-gray-500 dark:text-gray-400">
+            We couldn't load your media files. Please refresh the page or try
+            again later.
           </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 btn btn-primary"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );
@@ -102,10 +141,14 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
 
   if (mediaFiles.length === 0) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mb-4 text-gray-400 mx-auto">
-            <svg fill="currentColor" viewBox="0 0 20 20">
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-md text-center">
+          <div className="w-20 h-20 mx-auto mb-6 text-gray-300 dark:text-gray-700 animate-float">
+            <svg
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              className="w-full h-full"
+            >
               <path
                 fillRule="evenodd"
                 d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
@@ -113,15 +156,19 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            No media found
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <h3 className="mb-3 text-xl font-semibold text-gray-900 dark:text-gray-100">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
-              ? "No media matches your current filters. Try adjusting your search criteria."
-              : "No media files have been uploaded yet. Add some images or videos to get started."}
+              ? "No matches found"
+              : "No media yet"}
+          </h3>
+          <p className="leading-relaxed text-gray-500 dark:text-gray-400">
+            {filters.search ||
+            filters.selectedTags.length > 0 ||
+            filters.mimeType
+              ? "Try adjusting your search criteria or filters to find what you're looking for."
+              : "Start by uploading some images or videos to build your collection."}
           </p>
         </div>
       </div>
@@ -129,37 +176,51 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       {/* Results info */}
-      <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Showing {mediaFiles.length} media file
-        {mediaFiles.length !== 1 ? "s" : ""}
-        {response?.pagination && (
-          <span>
-            {" "}
-            (Page {response.pagination.page} of {response.pagination.totalPages}
-            )
-          </span>
-        )}
+      <div className="flex items-center justify-between mb-8">
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="font-medium text-gray-900 dark:text-gray-100">
+            {mediaFiles.length}
+          </span>{" "}
+          {mediaFiles.length === 1 ? "item" : "items"}
+          {response?.pagination && (
+            <span className="ml-2 text-gray-400 dark:text-gray-500">
+              • Page {response.pagination.page} of{" "}
+              {response.pagination.totalPages}
+            </span>
+          )}
+        </div>
+
+        {/* Grid size indicator */}
+        <div className="font-mono text-xs text-gray-400 dark:text-gray-500">
+          {viewMode.size.toUpperCase()}
+        </div>
       </div>
 
       {/* Media grid */}
-      <div className={`grid ${gridClasses} gap-4`}>
-        {mediaFiles.map((media) => (
-          <MediaCard
+      <div ref={galleryRef} className={`grid ${gridClasses} gap-6`}>
+        {mediaFiles.map((media, index) => (
+          <div
             key={media.id}
-            media={media}
-            size={viewMode.size}
-            onSelect={handleMediaSelect}
-          />
+            className="media-item"
+            style={{ animationDelay: `${index * 0.05}s` }}
+          >
+            <MediaCard
+              media={media}
+              size={viewMode.size}
+              onSelect={handleMediaSelect}
+            />
+          </div>
         ))}
       </div>
 
-      {/* Pagination could be added here */}
+      {/* Pagination hint */}
       {response?.pagination && response.pagination.totalPages > 1 && (
-        <div className="mt-8 flex justify-center">
-          <div className="text-sm text-gray-500">
-            Pagination controls can be added here
+        <div className="mt-12 text-center">
+          <div className="inline-flex items-center px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-full dark:bg-gray-900 dark:text-gray-400">
+            <span className="w-2 h-2 mr-2 bg-gray-300 rounded-full dark:bg-gray-600"></span>
+            More content available
           </div>
         </div>
       )}
