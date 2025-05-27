@@ -30,35 +30,32 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
-      {/* Main Application */}
-      <div id="gallery-section" className={`flex h-screen`}>
-        {/* Sidebar */}
-        <div
-          className={`transition-all duration-300 ${
-            sidebarOpen ? "w-64" : "w-0"
-          } overflow-hidden`}
-        >
-          <Sidebar filters={filters} onFiltersChange={updateFilters} />
-        </div>
+    <div className="flex max-h-screen min-h-screen bg-gray-50 dark:bg-black">
+      {/* Sidebar */}
+      <div
+        className={`transition-all duration-300 ${
+          sidebarOpen ? "w-64" : "w-0"
+        } overflow-hidden`}
+      >
+        <Sidebar filters={filters} onFiltersChange={updateFilters} />
+      </div>
 
-        {/* Main Content */}
-        <div className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-gray-950">
-          <Header
-            filters={filters}
-            onFiltersChange={updateFilters}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            sidebarOpen={sidebarOpen}
-            onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          />
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-gray-950">
+        <Header
+          filters={filters}
+          onFiltersChange={updateFilters}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          sidebarOpen={sidebarOpen}
+          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
 
-          <main className="flex-1 overflow-hidden">
-            <div className="h-full">
-              <MediaGallery filters={filters} viewMode={viewMode} />
-            </div>
-          </main>
-        </div>
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full">
+            <MediaGallery filters={filters} viewMode={viewMode} />
+          </div>
+        </main>
       </div>
     </div>
   );
