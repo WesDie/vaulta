@@ -43,6 +43,11 @@ export const mediaApi = {
     });
     return response.data;
   },
+
+  deleteMedia: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/api/media/${id}`);
+    return response.data;
+  },
 };
 
 // Tags API

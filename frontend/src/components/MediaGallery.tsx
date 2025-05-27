@@ -6,6 +6,7 @@ import { FilterState, ViewMode, MediaFile } from "@/types";
 import { useMediaFiles } from "@/hooks/useMedia";
 import { MediaCard } from "./MediaCard";
 import { MediaModal } from "./MediaModal";
+import { mediaApi } from "@/services/api";
 
 interface MediaGalleryProps {
   filters: FilterState;
@@ -85,6 +86,20 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     : -1;
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < mediaFiles.length - 1;
+
+  const handleDeleteMedia = async (mediaId: string) => {
+    try {
+      await mediaApi.deleteMedia(mediaId);
+      // You might want to add a toast notification here for success
+      // For now, the UI will update when the data is refetched
+      closeModal();
+      // Optionally trigger a refetch of media files
+      window.location.reload(); // Simple solution - you might want to use a better state management
+    } catch (error) {
+      console.error("Failed to delete media:", error);
+      // You might want to add a toast notification here for error
+    }
+  };
 
   if (isLoading) {
     return (
@@ -234,6 +249,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         onNext={hasNext ? () => navigateToMedia("next") : undefined}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
+        onDelete={handleDeleteMedia}
       />
     </div>
   );

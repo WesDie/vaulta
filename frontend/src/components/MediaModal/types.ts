@@ -8,6 +8,7 @@ export interface MediaModalProps {
   onNext?: () => void;
   hasPrevious?: boolean;
   hasNext?: boolean;
+  onDelete?: (mediaId: string) => void;
 }
 
 export interface ImageTransform {
@@ -42,6 +43,7 @@ export interface MediaControlsProps {
   hasPrevious?: boolean;
   hasNext?: boolean;
   isImage: boolean;
+  onDelete?: () => void;
 }
 
 export interface ZoomIndicatorProps {

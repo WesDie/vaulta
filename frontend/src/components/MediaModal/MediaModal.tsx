@@ -5,6 +5,7 @@ import { MediaModalProps } from "./types";
 import { MediaViewer } from "./MediaViewer";
 import { MetadataSidebar } from "./MetadataSidebar";
 import { MediaControls } from "./MediaControls";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { useZoom } from "./useZoom";
 
 export function MediaModal({
@@ -15,10 +16,12 @@ export function MediaModal({
   onNext,
   hasPrevious,
   hasNext,
+  onDelete,
 }: MediaModalProps) {
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [showMetadata, setShowMetadata] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -31,6 +34,22 @@ export function MediaModal({
   });
 
   const isImage = media?.mimeType.startsWith("image/") || false;
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (media && onDelete) {
+      onDelete(media.id);
+      setShowDeleteConfirm(false);
+      onClose();
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -90,6 +109,9 @@ export function MediaModal({
         case "R":
           resetTransform();
           break;
+        case "Delete":
+          if (onDelete) handleDeleteClick();
+          break;
       }
     };
 
@@ -128,6 +150,7 @@ export function MediaModal({
         hasPrevious={hasPrevious}
         hasNext={hasNext}
         isImage={isImage}
+        onDelete={onDelete ? handleDeleteClick : undefined}
       />
 
       {/* Main content */}
@@ -161,6 +184,18 @@ export function MediaModal({
           onClose={onClose}
         />
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Media File"
+        message={`Are you sure you want to delete "${media?.filename}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+      />
     </div>
   );
 }

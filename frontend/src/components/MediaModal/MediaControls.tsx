@@ -13,6 +13,7 @@ export function MediaControls({
   hasPrevious,
   hasNext,
   isImage,
+  onDelete,
 }: MediaControlsProps) {
   const { theme } = useTheme();
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -139,6 +140,31 @@ export function MediaControls({
             </button>
           </>
         )}
+
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className={`
+              p-3 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95
+              bg-red-600/20 hover:bg-red-600/30 text-red-500 backdrop-blur-md border border-red-500/30
+            `}
+            title="Delete Media (Del)"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation buttons */}
@@ -227,6 +253,7 @@ export function MediaControls({
           <span>ESC: Close</span>
           <span>I: Info</span>
           {isImage && <span>R: Reset</span>}
+          {onDelete && <span>Del: Delete</span>}
           <span>← →: Navigate</span>
         </div>
       </div>
