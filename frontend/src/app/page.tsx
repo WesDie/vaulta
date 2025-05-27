@@ -30,7 +30,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex max-h-screen min-h-screen bg-gray-50 dark:bg-black">
+    <div className="flex max-h-screen min-h-screen bg-background">
       {/* Sidebar */}
       <div
         className={`transition-all duration-300 ${
@@ -41,7 +41,7 @@ export default function HomePage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-gray-950">
+      <div className="flex flex-col flex-1 overflow-hidden bg-background">
         <Header
           filters={filters}
           onFiltersChange={updateFilters}

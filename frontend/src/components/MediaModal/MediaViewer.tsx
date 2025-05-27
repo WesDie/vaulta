@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
-import { useTheme } from "../ThemeProvider";
 import { MediaViewerProps } from "./types";
 import { useZoom } from "./useZoom";
 import { ZoomIndicator } from "./ZoomIndicator";
@@ -16,7 +15,6 @@ export function MediaViewer({
   isLoading,
   onLoadingChange,
 }: MediaViewerComponentProps) {
-  const { theme } = useTheme();
   const [imageSize, setImageSize] = useState<"thumb" | "full">("thumb");
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +51,7 @@ export function MediaViewer({
     <div
       ref={containerRef}
       className={`
-        relative flex items-center justify-center flex-1 overflow-hidden rounded-2xl
+        relative flex items-center justify-center flex-1 overflow-hidden
         ${isImage && transform.scale > 1 ? "cursor-grab" : "cursor-default"}
         ${isDragging ? "cursor-grabbing" : ""}
       `}
@@ -61,16 +59,7 @@ export function MediaViewer({
     >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className={`
-              w-12 h-12 border-4 rounded-full animate-spin
-              ${
-                theme === "dark"
-                  ? "border-white/20 border-t-white"
-                  : "border-black/20 border-t-black"
-              }
-            `}
-          />
+          <div className="w-12 h-12 border-4 rounded-full animate-spin border-border border-t-foreground" />
         </div>
       )}
 

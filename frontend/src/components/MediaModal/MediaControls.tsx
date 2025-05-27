@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { useTheme } from "../ThemeProvider";
 import { MediaControlsProps } from "./types";
 
 export function MediaControls({
@@ -15,28 +14,22 @@ export function MediaControls({
   isImage,
   onDelete,
 }: MediaControlsProps) {
-  const { theme } = useTheme();
   const controlsRef = useRef<HTMLDivElement>(null);
   const navButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const shortcutsRef = useRef<HTMLDivElement>(null);
 
+  // Use Tailwind CSS variables for consistent theming
   const buttonBaseClasses = `
     p-3 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95
-    ${
-      theme === "dark"
-        ? "bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20"
-        : "bg-black/10 hover:bg-black/20 text-black backdrop-blur-md border border-black/20"
-    }
+    bg-background/80 hover:bg-accent text-foreground backdrop-blur-md border border-border
+    shadow-sm hover:shadow-md
   `;
 
   const navigationButtonClasses = `
     p-4 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95
-    ${
-      theme === "dark"
-        ? "bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20"
-        : "bg-black/10 hover:bg-black/20 text-black backdrop-blur-md border border-black/20"
-    }
+    bg-background/80 hover:bg-accent text-foreground backdrop-blur-md border border-border
+    shadow-sm hover:shadow-md
   `;
 
   // GSAP animations for controls entrance
@@ -146,7 +139,8 @@ export function MediaControls({
             onClick={onDelete}
             className={`
               p-3 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95
-              bg-red-600/20 hover:bg-red-600/30 text-red-500 backdrop-blur-md border border-red-500/30
+              bg-destructive/20 hover:bg-destructive/30 text-destructive backdrop-blur-md border border-destructive/30
+              shadow-sm hover:shadow-md
             `}
             title="Delete Media (Del)"
           >
@@ -242,11 +236,8 @@ export function MediaControls({
         ref={shortcutsRef}
         className={`
           absolute bottom-6 left-6 z-20 p-3 rounded-full text-xs
-          ${
-            theme === "dark"
-              ? "bg-white/10 text-white/70 backdrop-blur-md border border-white/20"
-              : "bg-black/10 text-black/70 backdrop-blur-md border border-black/20"
-          }
+          bg-background/80 text-muted-foreground backdrop-blur-md border border-border
+          shadow-sm
         `}
       >
         <div className="flex gap-4">

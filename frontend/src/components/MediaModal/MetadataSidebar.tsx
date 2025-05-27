@@ -1,10 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { useTheme } from "../ThemeProvider";
 import { MetadataSidebarProps } from "./types";
 
 export function MetadataSidebar({ media, showMetadata }: MetadataSidebarProps) {
-  const { theme } = useTheme();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -63,114 +61,55 @@ export function MetadataSidebar({ media, showMetadata }: MetadataSidebarProps) {
     }
   }, [showMetadata]);
 
+  console.log(media);
+
   return (
     <div
       ref={sidebarRef}
       className={`
-        overflow-y-auto
-        ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-100/50"}
+        overflow-y-auto bg-muted
         ${showMetadata ? "p-6" : "p-0"}
-        ${showMetadata ? "lg:rounded-r-2xl" : ""}
       `}
     >
       {showMetadata && (
         <div ref={contentRef} className="space-y-6">
           {/* Header with filename */}
-          <div className="pb-4 border-b border-gray-300/20">
-            <h2
-              className={`
-                text-xl font-bold break-all leading-tight
-                ${theme === "dark" ? "text-white" : "text-gray-900"}
-              `}
-            >
+          <div className="pb-4 border-b border-border">
+            <h2 className="text-xl font-bold leading-tight break-all text-foreground">
               {media.filename}
             </h2>
           </div>
 
           {/* Basic info cards */}
           <div className="grid gap-4">
-            <div
-              className={`
-                p-4 rounded-xl border transition-colors
-                ${
-                  theme === "dark"
-                    ? "bg-gray-700/30 border-gray-600/30"
-                    : "bg-white/60 border-gray-300/30"
-                }
-              `}
-            >
-              <h3
-                className={`
-                  font-semibold mb-3 text-sm uppercase tracking-wide
-                  ${theme === "dark" ? "text-gray-300" : "text-gray-600"}
-                `}
-              >
+            <div className="p-4 transition-colors border rounded-xl bg-card border-border">
+              <h3 className="mb-3 text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                 File Details
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span
-                    className={
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }
-                  >
-                    Size:
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
+                  <span className="text-muted-foreground">Size:</span>
+                  <span className="font-medium text-foreground">
                     {formatFileSize(media.fileSize)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span
-                    className={
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }
-                  >
-                    Type:
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
+                  <span className="text-muted-foreground">Type:</span>
+                  <span className="font-medium text-foreground">
                     {media.mimeType}
                   </span>
                 </div>
                 {media.width && media.height && (
                   <div className="flex justify-between">
-                    <span
-                      className={
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }
-                    >
-                      Dimensions:
-                    </span>
-                    <span
-                      className={`font-medium ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}
-                    >
+                    <span className="text-muted-foreground">Dimensions:</span>
+                    <span className="font-medium text-foreground">
                       {media.width} × {media.height}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span
-                    className={
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }
-                  >
-                    Created:
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
+                  <span className="text-muted-foreground">Created:</span>
+                  <span className="font-medium text-foreground">
                     {formatDate(media.createdAt)}
                   </span>
                 </div>
@@ -179,147 +118,65 @@ export function MetadataSidebar({ media, showMetadata }: MetadataSidebarProps) {
 
             {/* EXIF Data */}
             {media.exifData && (
-              <div
-                className={`
-                  p-4 rounded-xl border transition-colors
-                  ${
-                    theme === "dark"
-                      ? "bg-gray-700/30 border-gray-600/30"
-                      : "bg-white/60 border-gray-300/30"
-                  }
-                `}
-              >
-                <h3
-                  className={`
-                    font-semibold mb-3 text-sm uppercase tracking-wide
-                    ${theme === "dark" ? "text-gray-300" : "text-gray-600"}
-                  `}
-                >
+              <div className="p-4 transition-colors border rounded-xl bg-card border-border">
+                <h3 className="mb-3 text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                   Camera Info
                 </h3>
                 <div className="space-y-2 text-sm">
                   {media.exifData.camera && (
                     <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        Camera:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
+                      <span className="text-muted-foreground">Camera:</span>
+                      <span className="font-medium text-foreground">
                         {media.exifData.camera}
                       </span>
                     </div>
                   )}
                   {media.exifData.lens && (
                     <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        Lens:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
+                      <span className="text-muted-foreground">Lens:</span>
+                      <span className="font-medium text-foreground">
                         {media.exifData.lens}
-                      </span>
-                    </div>
-                  )}
-                  {media.exifData.focalLength && (
-                    <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        Focal:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
-                        {media.exifData.focalLength}mm
                       </span>
                     </div>
                   )}
                   {media.exifData.aperture && (
                     <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        Aperture:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
+                      <span className="text-muted-foreground">Aperture:</span>
+                      <span className="font-medium text-foreground">
                         f/{media.exifData.aperture}
                       </span>
                     </div>
                   )}
                   {media.exifData.shutterSpeed && (
                     <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        Shutter:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
+                      <span className="text-muted-foreground">Shutter:</span>
+                      <span className="font-medium text-foreground">
                         {media.exifData.shutterSpeed}
                       </span>
                     </div>
                   )}
                   {media.exifData.iso && (
                     <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        ISO:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
+                      <span className="text-muted-foreground">ISO:</span>
+                      <span className="font-medium text-foreground">
                         {media.exifData.iso}
+                      </span>
+                    </div>
+                  )}
+                  {media.exifData.focalLength && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Focal Length:
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {media.exifData.focalLength}mm
                       </span>
                     </div>
                   )}
                   {media.exifData.dateTaken && (
                     <div className="flex justify-between">
-                      <span
-                        className={
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }
-                      >
-                        Taken:
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
+                      <span className="text-muted-foreground">Date Taken:</span>
+                      <span className="font-medium text-foreground">
                         {formatDate(media.exifData.dateTaken)}
                       </span>
                     </div>
@@ -328,57 +185,23 @@ export function MetadataSidebar({ media, showMetadata }: MetadataSidebarProps) {
               </div>
             )}
 
-            {/* GPS Data */}
+            {/* Location Data */}
             {media.exifData?.gps && (
-              <div
-                className={`
-                  p-4 rounded-xl border transition-colors
-                  ${
-                    theme === "dark"
-                      ? "bg-gray-700/30 border-gray-600/30"
-                      : "bg-white/60 border-gray-300/30"
-                  }
-                `}
-              >
-                <h3
-                  className={`
-                    font-semibold mb-3 text-sm uppercase tracking-wide
-                    ${theme === "dark" ? "text-gray-300" : "text-gray-600"}
-                  `}
-                >
+              <div className="p-4 transition-colors border rounded-xl bg-card border-border">
+                <h3 className="mb-3 text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                   Location
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span
-                      className={
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }
-                    >
-                      Latitude:
-                    </span>
-                    <span
-                      className={`font-medium ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {media.exifData.gps.latitude.toFixed(6)}
+                    <span className="text-muted-foreground">Latitude:</span>
+                    <span className="font-medium text-foreground">
+                      {media.exifData.gps.latitude}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span
-                      className={
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }
-                    >
-                      Longitude:
-                    </span>
-                    <span
-                      className={`font-medium ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {media.exifData.gps.longitude.toFixed(6)}
+                    <span className="text-muted-foreground">Longitude:</span>
+                    <span className="font-medium text-foreground">
+                      {media.exifData.gps.longitude}
                     </span>
                   </div>
                 </div>
@@ -387,30 +210,15 @@ export function MetadataSidebar({ media, showMetadata }: MetadataSidebarProps) {
 
             {/* Tags */}
             {media.tags && media.tags.length > 0 && (
-              <div
-                className={`
-                  p-4 rounded-xl border transition-colors
-                  ${
-                    theme === "dark"
-                      ? "bg-gray-700/30 border-gray-600/30"
-                      : "bg-white/60 border-gray-300/30"
-                  }
-                `}
-              >
-                <h3
-                  className={`
-                    font-semibold mb-3 text-sm uppercase tracking-wide
-                    ${theme === "dark" ? "text-gray-300" : "text-gray-600"}
-                  `}
-                >
+              <div className="p-4 transition-colors border rounded-xl bg-card border-border">
+                <h3 className="mb-3 text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                   Tags
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {media.tags.map((tag) => (
+                  {media.tags.map((tag, index) => (
                     <span
-                      key={tag.id}
-                      className="px-3 py-1 text-xs font-medium text-white rounded-full"
-                      style={{ backgroundColor: tag.color || "#6b7280" }}
+                      key={index}
+                      className="px-2 py-1 text-xs rounded-full bg-primary text-primary-foreground"
                     >
                       {tag.name}
                     </span>
@@ -421,93 +229,46 @@ export function MetadataSidebar({ media, showMetadata }: MetadataSidebarProps) {
 
             {/* Collections */}
             {media.collections && media.collections.length > 0 && (
-              <div
-                className={`
-                  p-4 rounded-xl border transition-colors
-                  ${
-                    theme === "dark"
-                      ? "bg-gray-700/30 border-gray-600/30"
-                      : "bg-white/60 border-gray-300/30"
-                  }
-                `}
-              >
-                <h3
-                  className={`
-                    font-semibold mb-3 text-sm uppercase tracking-wide
-                    ${theme === "dark" ? "text-gray-300" : "text-gray-600"}
-                  `}
-                >
+              <div className="p-4 transition-colors border rounded-xl bg-card border-border">
+                <h3 className="mb-3 text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                   Collections
                 </h3>
-                <div className="space-y-3">
-                  {media.collections.map((collection) => (
-                    <div key={collection.id}>
-                      <p
-                        className={`font-medium text-sm ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
-                        {collection.name}
-                      </p>
-                      {collection.description && (
-                        <p
-                          className={`text-xs ${
-                            theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          {collection.description}
-                        </p>
-                      )}
+                <div className="space-y-1">
+                  {media.collections.map((collection, index) => (
+                    <div key={index} className="text-sm text-foreground">
+                      {collection.name}
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Action buttons */}
-          <div className="pt-4 space-y-3">
-            <a
-              href={originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-medium text-white transition-all duration-200 transform bg-blue-500 rounded-full hover:scale-105 active:scale-95 hover:bg-blue-600"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* Download Link */}
+            <div className="p-4 transition-colors border rounded-xl bg-card border-border">
+              <h3 className="mb-3 text-sm font-semibold tracking-wide uppercase text-muted-foreground">
+                Download
+              </h3>
+              <a
+                href={originalUrl}
+                download={media.filename}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium transition-colors rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              Open Original
-            </a>
-            <a
-              href={originalUrl}
-              download={media.filename}
-              className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-medium text-white transition-all duration-200 transform bg-green-500 rounded-full hover:scale-105 active:scale-95 hover:bg-green-600"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              Download
-            </a>
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Download Original
+              </a>
+            </div>
           </div>
         </div>
       )}

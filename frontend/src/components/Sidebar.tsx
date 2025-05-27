@@ -30,7 +30,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
     <div className="p-6 overflow-y-auto sidebar">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-sm font-semibold tracking-wider text-gray-900 uppercase dark:text-gray-100">
+        <h2 className="text-sm font-semibold tracking-wider uppercase text-foreground">
           Filters
         </h2>
         <div className="mt-2 border-gradient"></div>
@@ -38,7 +38,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
 
       {/* Quick Filters */}
       <div className="mb-8">
-        <h3 className="mb-4 text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+        <h3 className="mb-4 text-xs font-medium tracking-wider uppercase text-muted-foreground">
           File Type
         </h3>
         <div className="space-y-2">
@@ -48,8 +48,8 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
               onClick={() => onFiltersChange({ mimeType: filter.mimeType })}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
                 filters.mimeType === filter.mimeType
-                  ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-black font-medium"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               {filter.name}
@@ -60,16 +60,16 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
 
       {/* Sort Direction */}
       <div className="mb-8">
-        <h3 className="mb-4 text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+        <h3 className="mb-4 text-xs font-medium tracking-wider uppercase text-muted-foreground">
           Order
         </h3>
-        <div className="flex p-1 bg-gray-100 rounded-lg dark:bg-gray-900">
+        <div className="flex p-1 rounded-lg bg-muted">
           <button
             onClick={() => onFiltersChange({ sortOrder: "desc" })}
             className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${
               filters.sortOrder === "desc"
-                ? "bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100"
-                : "text-gray-500 dark:text-gray-400"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground"
             }`}
           >
             Newest
@@ -78,8 +78,8 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
             onClick={() => onFiltersChange({ sortOrder: "asc" })}
             className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${
               filters.sortOrder === "asc"
-                ? "bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100"
-                : "text-gray-500 dark:text-gray-400"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground"
             }`}
           >
             Oldest
@@ -89,7 +89,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
 
       {/* Tags */}
       <div className="mb-8">
-        <h3 className="mb-4 text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+        <h3 className="mb-4 text-xs font-medium tracking-wider uppercase text-muted-foreground">
           Tags
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -106,8 +106,8 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
                 }}
                 className={`px-3 py-1 text-xs rounded-full border transition-all ${
                   isSelected
-                    ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-black border-gray-900 dark:border-gray-100"
-                    : "bg-transparent text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:border-accent"
                 }`}
               >
                 {tag}
@@ -119,7 +119,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
 
       {/* Collections */}
       <div className="mb-8">
-        <h3 className="mb-4 text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+        <h3 className="mb-4 text-xs font-medium tracking-wider uppercase text-muted-foreground">
           Collections
         </h3>
         <div className="space-y-2">
@@ -138,8 +138,8 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
                 }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between ${
                   isSelected
-                    ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-black"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
                 <span>{collection}</span>
@@ -163,7 +163,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
       </div>
 
       {/* Reset Filters */}
-      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+      <div className="pt-4 border-t border-border">
         <button
           onClick={() =>
             onFiltersChange({

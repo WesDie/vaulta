@@ -105,13 +105,13 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8">
         <div className="mb-8">
-          <div className="w-48 h-4 bg-gray-200 rounded dark:bg-gray-800 animate-pulse"></div>
+          <div className="w-48 h-4 rounded bg-border animate-pulse"></div>
         </div>
         <div className={`grid ${gridClasses} gap-6`}>
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className="bg-gray-100 aspect-square dark:bg-gray-900 rounded-xl animate-pulse"
+              className="bg-muted aspect-square rounded-xl animate-pulse"
             />
           ))}
         </div>
@@ -123,7 +123,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md text-center">
-          <div className="w-20 h-20 mx-auto mb-6 text-gray-300 dark:text-gray-700">
+          <div className="w-20 h-20 mx-auto mb-6 text-muted-foreground">
             <svg
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -136,10 +136,10 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="mb-3 text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="mb-3 text-xl font-semibold text-foreground">
             Something went wrong
           </h3>
-          <p className="leading-relaxed text-gray-500 dark:text-gray-400">
+          <p className="leading-relaxed text-muted-foreground">
             We couldn't load your media files. Please refresh the page or try
             again later.
           </p>
@@ -158,7 +158,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md text-center">
-          <div className="w-20 h-20 mx-auto mb-6 text-gray-300 dark:text-gray-700 animate-float">
+          <div className="w-20 h-20 mx-auto mb-6 text-muted-foreground animate-float">
             <svg
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -171,14 +171,14 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="mb-3 text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="mb-3 text-xl font-semibold text-foreground">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
               ? "No matches found"
               : "No media yet"}
           </h3>
-          <p className="leading-relaxed text-gray-500 dark:text-gray-400">
+          <p className="leading-relaxed text-muted-foreground">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
@@ -194,13 +194,13 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     <div className="p-8">
       {/* Results info */}
       <div className="flex items-center justify-between mb-8">
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          <span className="font-medium text-gray-900 dark:text-gray-100">
+        <div className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">
             {mediaFiles.length}
           </span>{" "}
           {mediaFiles.length === 1 ? "item" : "items"}
           {response?.pagination && (
-            <span className="ml-2 text-gray-400 dark:text-gray-500">
+            <span className="ml-2 text-muted-foreground">
               • Page {response.pagination.page} of{" "}
               {response.pagination.totalPages}
             </span>
@@ -208,7 +208,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         </div>
 
         {/* Grid size indicator */}
-        <div className="font-mono text-xs text-gray-400 dark:text-gray-500">
+        <div className="font-mono text-xs text-muted-foreground">
           {viewMode.size.toUpperCase()}
         </div>
       </div>
@@ -233,8 +233,8 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
       {/* Pagination hint */}
       {response?.pagination && response.pagination.totalPages > 1 && (
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-full dark:bg-gray-900 dark:text-gray-400">
-            <span className="w-2 h-2 mr-2 bg-gray-300 rounded-full dark:bg-gray-600"></span>
+          <div className="inline-flex items-center px-4 py-2 text-sm rounded-full text-muted-foreground bg-muted">
+            <span className="w-2 h-2 mr-2 rounded-full bg-muted-foreground"></span>
             More content available
           </div>
         </div>

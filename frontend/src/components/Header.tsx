@@ -31,13 +31,13 @@ export function Header({
   };
 
   return (
-    <header className="px-6 py-4 border-b glass-card border-gray-200/50 dark:border-gray-800/50">
+    <header className="px-6 py-4 border-b glass-card border-border">
       <div className="flex items-center justify-between">
         {/* Left Section */}
         <div className="flex items-center space-x-6">
           <button
             onClick={onSidebarToggle}
-            className="p-2 transition-colors rounded-lg btn-ghost hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 transition-colors rounded-lg btn-ghost hover:bg-accent"
             title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             <svg
@@ -56,14 +56,12 @@ export function Header({
           </button>
 
           <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-black rounded-lg dark:bg-white">
-              <span className="text-sm font-bold text-white dark:text-black">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">
                 V
               </span>
             </div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Vaulta
-            </h1>
+            <h1 className="text-xl font-semibold text-foreground">Vaulta</h1>
           </div>
         </div>
 
@@ -71,7 +69,7 @@ export function Header({
         <div className="flex-1 max-w-lg mx-8">
           <div className="relative">
             <svg
-              className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2"
+              className="absolute w-4 h-4 transform -translate-y-1/2 text-muted-foreground left-3 top-1/2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -88,7 +86,7 @@ export function Header({
               placeholder="Search your media..."
               value={filters.search}
               onChange={(e) => onFiltersChange({ search: e.target.value })}
-              className="w-full pl-10 pr-4 border-0 input bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100"
+              className="w-full pl-10 pr-4 border-0 input bg-muted focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -96,13 +94,13 @@ export function Header({
         {/* Right Section */}
         <div className="flex items-center space-x-3">
           {/* View Mode Toggle */}
-          <div className="flex items-center p-1 bg-gray-100 rounded-lg dark:bg-gray-900">
+          <div className="flex items-center p-1 rounded-lg bg-muted">
             <button
               onClick={() => onViewModeChange({ ...viewMode, type: "grid" })}
               className={`p-2 rounded-md transition-all ${
                 viewMode.type === "grid"
-                  ? "bg-white dark:bg-gray-800 shadow-sm"
-                  : "hover:bg-gray-200 dark:hover:bg-gray-800"
+                  ? "bg-background shadow-sm"
+                  : "hover:bg-accent"
               }`}
               title="Grid view"
             >
@@ -124,8 +122,8 @@ export function Header({
               onClick={() => onViewModeChange({ ...viewMode, type: "list" })}
               className={`p-2 rounded-md transition-all ${
                 viewMode.type === "list"
-                  ? "bg-white dark:bg-gray-800 shadow-sm"
-                  : "hover:bg-gray-200 dark:hover:bg-gray-800"
+                  ? "bg-background shadow-sm"
+                  : "hover:bg-accent"
               }`}
               title="List view"
             >
@@ -146,15 +144,15 @@ export function Header({
           </div>
 
           {/* Grid Size */}
-          <div className="flex items-center p-1 bg-gray-100 rounded-lg dark:bg-gray-900">
+          <div className="flex items-center p-1 rounded-lg bg-muted">
             {(["small", "medium", "large"] as const).map((size) => (
               <button
                 key={size}
                 onClick={() => onViewModeChange({ ...viewMode, size })}
                 className={`px-3 py-2 text-xs font-medium rounded-md transition-all ${
                   viewMode.size === size
-                    ? "bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:bg-accent"
                 }`}
               >
                 {size.charAt(0).toUpperCase()}
@@ -165,7 +163,7 @@ export function Header({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 transition-colors rounded-lg btn-ghost hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 transition-colors rounded-lg btn-ghost hover:bg-accent"
             title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           >
             {theme === "dark" ? (

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { useTheme } from "../ThemeProvider";
 import { MediaModalProps } from "./types";
 import { MediaViewer } from "./MediaViewer";
 import { MetadataSidebar } from "./MetadataSidebar";
@@ -18,7 +17,6 @@ export function MediaModal({
   hasNext,
   onDelete,
 }: MediaModalProps) {
-  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [showMetadata, setShowMetadata] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -135,7 +133,7 @@ export function MediaModal({
       {/* Modern backdrop with blur */}
       <div
         ref={backdropRef}
-        className="absolute inset-0 backdrop-blur-xl"
+        className="absolute inset-0 backdrop-blur-xl bg-background/75"
         onClick={onClose}
       />
 
@@ -157,9 +155,7 @@ export function MediaModal({
       <div
         ref={modalRef}
         className={`
-          relative z-10 flex max-h-[95vh] max-w-[95vw] overflow-hidden
-          rounded-2xl border
-          ${theme === "dark" ? "border-white/10" : " border-black/10"}
+          relative z-10 flex max-h-[95vh] max-w-[95vw] overflow-hidden rounded-2xl border border-border
           ${showMetadata ? "lg:flex-row" : "flex-col"}
         `}
       >
@@ -167,7 +163,6 @@ export function MediaModal({
         <div
           className={`
             flex-1
-            ${showMetadata ? "lg:rounded-l-2xl" : "rounded-2xl"}
           `}
         >
           <MediaViewer

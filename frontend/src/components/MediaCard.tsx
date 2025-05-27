@@ -57,7 +57,7 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
 
   return (
     <div
-      className="relative group cursor-pointer bg-white dark:bg-gray-950 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+      className="relative group cursor-pointer bg-card rounded-xl overflow-hidden border border-border hover:border-accent transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
       onClick={() => onSelect?.(media)}
     >
       {/* Media Preview */}
@@ -78,16 +78,16 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
               loading="lazy"
             />
             {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
                 <div className="w-6 h-6 loading-spinner"></div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center w-full h-full bg-gray-50 dark:bg-gray-900">
+          <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
             {isVideo ? (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600">
+                <div className="w-12 h-12 mx-auto mb-3 text-muted-foreground">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -96,16 +96,16 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-medium text-card-foreground">
                   Video
                 </p>
-                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {formatFileSize(media.fileSize)}
                 </p>
               </div>
             ) : isImage ? (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600">
+                <div className="w-12 h-12 mx-auto mb-3 text-muted-foreground">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -114,7 +114,7 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-medium text-card-foreground">
                   Image
                 </p>
                 {!thumbnailUrl && !thumbnailLoading && (
@@ -123,7 +123,7 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                       e.stopPropagation();
                       handleGenerateThumbnail();
                     }}
-                    className="px-3 py-1 mt-2 text-xs text-gray-600 transition-colors bg-gray-100 rounded-full dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    className="px-3 py-1 mt-2 text-xs transition-colors rounded-full text-muted-foreground bg-accent hover:bg-accent/80"
                   >
                     Generate Thumbnail
                   </button>
@@ -131,13 +131,15 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                 {thumbnailLoading && (
                   <div className="flex items-center justify-center mt-2">
                     <div className="w-4 h-4 mr-2 loading-spinner"></div>
-                    <span className="text-xs text-gray-400">Generating...</span>
+                    <span className="text-xs text-muted-foreground">
+                      Generating...
+                    </span>
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600">
+                <div className="w-12 h-12 mx-auto mb-3 text-muted-foreground">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -146,10 +148,10 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-medium text-card-foreground">
                   Document
                 </p>
-                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {formatFileSize(media.fileSize)}
                 </p>
               </div>
@@ -184,9 +186,9 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
         {/* Hover Overlay */}
         <div className="absolute inset-0 transition-all duration-300 opacity-0 bg-black/0 group-hover:bg-black/30 group-hover:opacity-100">
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="p-3 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+            <div className="p-3 rounded-full bg-card backdrop-blur-sm">
               <svg
-                className="w-6 h-6 text-gray-900 dark:text-gray-100"
+                className="w-6 h-6 text-card-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -211,10 +213,10 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
 
       {/* Media Info */}
       <div className="p-4">
-        <h3 className="mb-1 text-sm font-medium text-gray-900 truncate dark:text-gray-100">
+        <h3 className="mb-1 text-sm font-medium truncate text-card-foreground">
           {media.filename}
         </h3>
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{formatFileSize(media.fileSize)}</span>
           {media.width && media.height && (
             <span>

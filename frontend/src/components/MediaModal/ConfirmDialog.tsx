@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { useTheme } from "../ThemeProvider";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export function ConfirmDialog({
   cancelText = "Cancel",
   isDestructive = false,
 }: ConfirmDialogProps) {
-  const { theme } = useTheme();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -74,45 +72,24 @@ export function ConfirmDialog({
       {/* Backdrop */}
       <div
         ref={backdropRef}
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/50 backdrop-blur-sm"
         onClick={onCancel}
       />
 
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className={`
-          relative z-10 w-full max-w-md p-6 mx-4 rounded-2xl border
-          ${
-            theme === "dark"
-              ? "bg-gray-900/95 border-white/10 text-white"
-              : "bg-white/95 border-black/10 text-black"
-          }
-          backdrop-blur-xl
-        `}
+        className="relative z-10 w-full max-w-md p-6 mx-4 border rounded-2xl bg-card border-border text-card-foreground backdrop-blur-xl"
       >
         <div className="mb-4">
           <h3 className="mb-2 text-lg font-semibold">{title}</h3>
-          <p
-            className={`text-sm ${
-              theme === "dark" ? "text-gray-300" : "text-gray-600"
-            }`}
-          >
-            {message}
-          </p>
+          <p className="text-sm text-muted-foreground">{message}</p>
         </div>
 
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className={`
-              px-4 py-2 rounded-lg transition-all duration-200 font-medium
-              ${
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-              }
-            `}
+            className="px-4 py-2 font-medium transition-all duration-200 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground"
           >
             {cancelText}
           </button>
@@ -122,10 +99,8 @@ export function ConfirmDialog({
               px-4 py-2 rounded-lg transition-all duration-200 font-medium
               ${
                 isDestructive
-                  ? "bg-red-600 hover:bg-red-700 text-white"
-                  : theme === "dark"
-                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                  ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  : "bg-primary hover:bg-primary/90 text-primary-foreground"
               }
             `}
           >
