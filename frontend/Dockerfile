@@ -15,6 +15,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure public directory exists
+RUN mkdir -p ./public
+
 # Accept API URL as build argument
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG INTERNAL_API_URL=http://localhost:8000
@@ -33,6 +36,7 @@ ENV NODE_ENV production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy public directory (now guaranteed to exist)
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache

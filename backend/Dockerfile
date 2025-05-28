@@ -15,14 +15,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies including devDependencies for build
+RUN npm ci
 
 # Copy source code
 COPY . .
 
 # Build the application
 RUN npm run build
+
+# Prune dev dependencies after build
+RUN npm ci --only=production
 
 # Create data directories
 RUN mkdir -p /app/data/originals /app/data/thumbs
