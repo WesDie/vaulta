@@ -83,3 +83,26 @@ export interface FilterState {
   sortBy: MediaQuery["sortBy"];
   sortOrder: MediaQuery["sortOrder"];
 }
+
+export interface StorageInfo {
+  totalSpace: number;
+  usedSpace: number;
+  freeSpace: number;
+  mediaFiles: {
+    totalCount: number;
+    totalSize: number;
+    imageCount: number;
+    imageSize: number;
+    videoCount: number;
+    videoSize: number;
+  };
+  // For different storage locations
+  originals: {
+    totalSize: number;
+    path: string;
+  };
+  thumbnails: {
+    totalSize: number;
+    path: string;
+  };
+}

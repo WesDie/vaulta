@@ -1,5 +1,12 @@
 import axios from "axios";
-import { MediaFile, Tag, Collection, ApiResponse, MediaQuery } from "@/types";
+import {
+  MediaFile,
+  Tag,
+  Collection,
+  ApiResponse,
+  MediaQuery,
+  StorageInfo,
+} from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -62,14 +69,16 @@ export const tagsApi = {
     return response.data;
   },
 
-  createTag: async (tag: Partial<Tag>): Promise<ApiResponse<Tag>> => {
+  createTag: async (
+    tag: Pick<Tag, "name" | "color">
+  ): Promise<ApiResponse<Tag>> => {
     const response = await api.post("/api/tags", tag);
     return response.data;
   },
 
   updateTag: async (
     id: string,
-    tag: Partial<Tag>
+    tag: Partial<Pick<Tag, "name" | "color">>
   ): Promise<ApiResponse<Tag>> => {
     const response = await api.put(`/api/tags/${id}`, tag);
     return response.data;
@@ -81,11 +90,39 @@ export const tagsApi = {
   },
 };
 
-// Collections API (placeholder for future implementation)
+// Collections API
 export const collectionsApi = {
   getCollections: async (): Promise<ApiResponse<Collection[]>> => {
-    // This endpoint doesn't exist yet in the backend
-    return { success: true, data: [] };
+    const response = await api.get("/api/collections");
+    return response.data;
+  },
+
+  createCollection: async (
+    collection: Pick<Collection, "name" | "description">
+  ): Promise<ApiResponse<Collection>> => {
+    const response = await api.post("/api/collections", collection);
+    return response.data;
+  },
+
+  updateCollection: async (
+    id: string,
+    collection: Partial<Pick<Collection, "name" | "description">>
+  ): Promise<ApiResponse<Collection>> => {
+    const response = await api.put(`/api/collections/${id}`, collection);
+    return response.data;
+  },
+
+  deleteCollection: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/api/collections/${id}`);
+    return response.data;
+  },
+};
+
+// Storage API
+export const storageApi = {
+  getStorageInfo: async (): Promise<ApiResponse<StorageInfo>> => {
+    const response = await api.get("/api/storage");
+    return response.data;
   },
 };
 
