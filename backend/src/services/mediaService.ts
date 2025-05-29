@@ -166,11 +166,11 @@ export class MediaService {
 
       if (mediaFile.mimeType.startsWith("image/")) {
         await sharp(originalPath)
-          .resize(400, 400, {
+          .resize(800, 800, {
             fit: "inside",
             withoutEnlargement: true,
           })
-          .jpeg({ quality: 85 })
+          .jpeg({ quality: 92 })
           .toFile(thumbnailPath);
 
         // Update database with thumbnail path
