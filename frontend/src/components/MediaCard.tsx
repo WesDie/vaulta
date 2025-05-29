@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
+import { gsap } from "gsap";
 import { MediaFile } from "@/types";
 import { mediaApi } from "@/services/api";
 
@@ -13,11 +14,12 @@ interface MediaCardProps {
 export function MediaCard({ media, onSelect }: MediaCardProps) {
   const [imageError, setImageError] = useState(false);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
-  const [thumbnailGenerated, setThumbnailGenerated] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-  const [isHovering, setIsHovering] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [cardWidth, setCardWidth] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
 
   // Use relative URLs for image optimization to work with Docker network
   // The Next.js rewrites will handle routing these to the backend
@@ -28,6 +30,19 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
     ? `/api${media.thumbnailPath}`
     : null;
 
+  // Check card width on mount and resize
+  useEffect(() => {
+    const updateCardWidth = () => {
+      if (cardRef.current) {
+        setCardWidth(cardRef.current.offsetWidth);
+      }
+    };
+
+    updateCardWidth();
+    window.addEventListener("resize", updateCardWidth);
+    return () => window.removeEventListener("resize", updateCardWidth);
+  }, []);
+
   const handleGenerateThumbnail = async () => {
     setThumbnailLoading(true);
     try {
@@ -36,7 +51,6 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
         // Update the media object with new thumbnail path
         media.thumbnailPath = result.data.thumbnailPath;
         setImageError(false);
-        setThumbnailGenerated(true);
         setImageLoading(true); // Reset loading state to show new image
       }
     } catch (error) {
@@ -47,22 +61,64 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
   };
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-
-    setMousePosition({ x, y });
+    // Removed mouse tracking transform as requested
   }, []);
 
   const handleMouseEnter = () => {
-    setIsHovering(true);
+    // GSAP animation for image - faster duration
+    if (imageRef.current) {
+      gsap.to(imageRef.current, {
+        duration: 0.2, // Faster animation
+        ease: "power2.out",
+      });
+    }
+
+    // Show info overlay with animation if card is wide enough - faster duration
+    if (cardWidth >= 115 && overlayRef.current && infoRef.current) {
+      gsap.set(overlayRef.current, {
+        display: "flex",
+        opacity: 0,
+      });
+
+      gsap.set(infoRef.current, {
+        y: 20,
+        opacity: 0,
+      });
+
+      const tl = gsap.timeline();
+      tl.to(overlayRef.current, {
+        opacity: 1,
+        duration: 0.15, // Faster animation
+        ease: "power2.out",
+      }).to(
+        infoRef.current,
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.2, // Faster animation
+          ease: "back.out(1.7)",
+        },
+        "-=0.05"
+      );
+    }
   };
 
   const handleMouseLeave = () => {
-    setIsHovering(false);
-    setMousePosition({ x: 0, y: 0 });
+    // GSAP animation to reset image - instant/very fast
+    if (imageRef.current) {
+      gsap.to(imageRef.current, {
+        x: 0,
+        y: 0,
+        duration: 0.1, // Very fast reset
+        ease: "power2.out",
+      });
+    }
+
+    // Hide info overlay with animation - instant
+    if (overlayRef.current && infoRef.current) {
+      gsap.set(overlayRef.current, { display: "none" });
+      gsap.set(infoRef.current, { y: 20, opacity: 0 });
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -89,16 +145,6 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
   const isVideo = media.mimeType.startsWith("video/");
   const isImage = media.mimeType.startsWith("image/");
 
-  // Calculate transform based on mouse position (subtle movement)
-  const transformStyle = {
-    transform: `translate(${mousePosition.x * 3}px, ${
-      mousePosition.y * 3
-    }px) scale(${isHovering ? 1.05 : 1})`,
-    transition: isHovering
-      ? "transform 0.1s ease-out"
-      : "transform 0.3s ease-out",
-  };
-
   return (
     <div
       ref={cardRef}
@@ -119,12 +165,12 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
               alt={media.filename}
               fill
               className="object-cover"
-              style={transformStyle}
               onError={() => setImageError(true)}
               onLoad={() => setImageLoading(false)}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={false}
               loading="lazy"
+              ref={imageRef}
             />
             {imageLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
@@ -191,9 +237,13 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
         )}
 
         {/* Hover Info Overlay */}
-        {isHovering && (
-          <div className="absolute inset-0 flex items-end justify-start p-3 transition-all duration-300 ease-out bg-black/60">
-            <div className="space-y-1 text-sm text-white transition-all duration-300 ease-out transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
+        {cardWidth >= 115 && (
+          <div
+            ref={overlayRef}
+            className="absolute inset-0 flex items-end justify-start p-3 bg-black/60"
+            style={{ display: "none" }}
+          >
+            <div ref={infoRef} className="space-y-1 text-sm text-white">
               <div className="font-medium">
                 {getFileExtension(media.filename)}
               </div>
