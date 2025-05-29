@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { MediaViewerProps } from "./types";
 import { useZoom } from "./useZoom";
 import { ZoomIndicator } from "./ZoomIndicator";
 
@@ -9,6 +8,7 @@ interface MediaViewerComponentProps {
   isLoading: boolean;
   onLoadingChange: (loading: boolean) => void;
   onHeightChange?: (height: number) => void;
+  onResetTransform?: (resetFn: () => void) => void;
 }
 
 export function MediaViewer({
@@ -16,6 +16,7 @@ export function MediaViewer({
   isLoading,
   onLoadingChange,
   onHeightChange,
+  onResetTransform,
 }: MediaViewerComponentProps) {
   const [imageSize, setImageSize] = useState<"thumb" | "full">("thumb");
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
@@ -24,6 +25,7 @@ export function MediaViewer({
   const {
     transform,
     isDragging,
+    resetTransform,
     handleMouseDown,
     handleTouchStart,
     handleTouchMove,
@@ -57,6 +59,13 @@ export function MediaViewer({
       resizeObserver.disconnect();
     };
   }, [onHeightChange]);
+
+  // Pass reset function to parent
+  useEffect(() => {
+    if (onResetTransform) {
+      onResetTransform(resetTransform);
+    }
+  }, [onResetTransform, resetTransform]);
 
   const optimizedImageUrl = `/api/media/${media.id}/image?size=thumb`;
   const originalUrl = `/originals/${media.filename}`;

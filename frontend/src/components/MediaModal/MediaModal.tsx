@@ -5,7 +5,6 @@ import { MediaViewer } from "./MediaViewer";
 import { MetadataSidebar } from "./MetadataSidebar";
 import { MediaControls } from "./MediaControls";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { useZoom } from "./useZoom";
 
 export function MediaModal({
   media,
@@ -21,16 +20,11 @@ export function MediaModal({
   const [showMetadata, setShowMetadata] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [imageContainerHeight, setImageContainerHeight] = useState<number>(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [resetTransform, setResetTransform] = useState<(() => void) | null>(
+    null
+  );
   const backdropRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  // Get zoom controls for reset functionality
-  const { resetTransform } = useZoom({
-    isOpen,
-    media,
-    containerRef,
-  });
 
   const isImage = media?.mimeType.startsWith("image/") || false;
 
@@ -48,6 +42,10 @@ export function MediaModal({
 
   const handleDeleteCancel = () => {
     setShowDeleteConfirm(false);
+  };
+
+  const handleResetTransform = (resetFn: () => void) => {
+    setResetTransform(() => resetFn);
   };
 
   useEffect(() => {
@@ -106,7 +104,7 @@ export function MediaModal({
           break;
         case "r":
         case "R":
-          resetTransform();
+          if (resetTransform) resetTransform();
           break;
         case "Delete":
           if (onDelete) handleDeleteClick();
@@ -142,7 +140,7 @@ export function MediaModal({
       <MediaControls
         showMetadata={showMetadata}
         onToggleMetadata={() => setShowMetadata(!showMetadata)}
-        onResetZoom={resetTransform}
+        onResetZoom={() => resetTransform && resetTransform()}
         onClose={onClose}
         onPrevious={onPrevious}
         onNext={onNext}
@@ -171,6 +169,7 @@ export function MediaModal({
             isLoading={isLoading}
             onLoadingChange={setIsLoading}
             onHeightChange={setImageContainerHeight}
+            onResetTransform={handleResetTransform}
           />
         </div>
 

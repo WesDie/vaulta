@@ -17,7 +17,6 @@ export function useZoom({ isOpen, media, containerRef }: UseZoomProps) {
   const [lastTouchDistance, setLastTouchDistance] = useState(0);
   const dragRef = useRef({ x: 0, y: 0 });
 
-  // Calculate minimum scale based on container and image dimensions
   const getMinScale = useCallback(() => {
     if (!containerRef.current || !media?.width || !media?.height) return 1;
 
@@ -33,17 +32,6 @@ export function useZoom({ isOpen, media, containerRef }: UseZoomProps) {
     // Don't allow zooming out below 100% (1.0) or the fit scale, whichever is smaller
     return Math.max(1, fitScale);
   }, [containerRef, media]);
-
-  const resetTransform = useCallback(() => {
-    setTransform({ scale: 1, x: 0, y: 0 });
-  }, []);
-
-  // Reset transform when modal opens or media changes
-  useEffect(() => {
-    if (isOpen) {
-      resetTransform();
-    }
-  }, [isOpen, media?.id, resetTransform]);
 
   // Constrain transform values
   const constrainTransform = useCallback(
@@ -92,6 +80,17 @@ export function useZoom({ isOpen, media, containerRef }: UseZoomProps) {
     },
     [constrainTransform]
   );
+
+  const resetTransform = useCallback(() => {
+    updateTransform((prev) => ({ ...prev, scale: 1, x: 0, y: 0 }));
+  }, [updateTransform]);
+
+  // Reset transform when modal opens or media changes
+  useEffect(() => {
+    if (isOpen) {
+      resetTransform();
+    }
+  }, [isOpen, media?.id, resetTransform]);
 
   // Mouse wheel zoom
   const handleWheel = useCallback(
