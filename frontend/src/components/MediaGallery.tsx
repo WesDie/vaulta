@@ -134,16 +134,16 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               key={i}
               className={
                 isListView
-                  ? "bg-gray-200 h-16 rounded animate-pulse flex items-center space-x-4 p-4"
-                  : "bg-gray-200 aspect-square animate-pulse"
+                  ? "bg-muted-foreground/20 h-16 rounded animate-pulse flex items-center space-x-4 p-4"
+                  : "bg-muted-foreground/20 aspect-square animate-pulse"
               }
             >
               {isListView && (
                 <>
-                  <div className="w-12 h-12 bg-gray-300 rounded"></div>
+                  <div className="w-12 h-12 rounded bg-muted-foreground/20"></div>
                   <div className="flex-1 space-y-2">
-                    <div className="w-3/4 h-3 bg-gray-300 rounded"></div>
-                    <div className="w-1/2 h-2 bg-gray-300 rounded"></div>
+                    <div className="w-3/4 h-3 rounded bg-muted-foreground/20"></div>
+                    <div className="w-1/2 h-2 rounded bg-muted-foreground/20"></div>
                   </div>
                 </>
               )}
@@ -158,7 +158,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md text-center">
-          <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
+          <div className="w-16 h-16 mx-auto mb-4 text-muted-foreground">
             <svg
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -171,15 +171,15 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">
+          <h3 className="mb-2 text-lg font-medium text-primary">
             Something went wrong
           </h3>
-          <p className="mb-4 text-gray-600">
+          <p className="mb-4 text-muted-foreground">
             We couldn't load your media files.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 text-sm text-white bg-black rounded hover:bg-gray-800"
+            className="px-4 py-2 text-sm text-white bg-black rounded hover:bg-muted-foreground/20"
           >
             Refresh
           </button>
@@ -192,7 +192,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md text-center">
-          <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
+          <div className="w-16 h-16 mx-auto mb-4 text-muted-foreground">
             <svg
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -205,14 +205,14 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">
+          <h3 className="mb-2 text-lg font-medium text-primary">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
               ? "No matches found"
               : "No media yet"}
           </h3>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
@@ -228,10 +228,10 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     <div className="p-2">
       {/* Results info - minimal */}
       <div className="flex items-center justify-between px-2 mb-3">
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-muted-foreground">
           {mediaFiles.length} {mediaFiles.length === 1 ? "item" : "items"}
         </div>
-        <div className="font-mono text-xs text-gray-400">
+        <div className="font-mono text-xs text-muted-foreground">
           {viewMode.type.toUpperCase()} • {viewMode.size.toUpperCase()}
         </div>
       </div>
@@ -274,7 +274,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
                 </div>
                 {media.tags && media.tags.length > 0 && (
                   <div className="flex-shrink-0">
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full text-primary bg-muted-foreground/20">
                       {media.tags.length} tags
                     </span>
                   </div>
