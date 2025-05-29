@@ -44,7 +44,7 @@ setup() {
     # Create .env file if it doesn't exist
     if [ ! -f .env ]; then
         print_status "Creating .env file from .env.example..."
-        cp env.example .env
+        cp .env.example .env
         print_success ".env file created"
     else
         print_warning ".env file already exists"
