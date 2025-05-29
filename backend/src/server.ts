@@ -7,6 +7,7 @@ import * as dotenv from "dotenv";
 import * as path from "path";
 import { mediaRoutes } from "./routes/media";
 import { tagRoutes } from "./routes/tags";
+import { storageRoutes } from "./routes/storage";
 import * as fs from "fs/promises";
 
 dotenv.config({ path: path.join(__dirname, "../../.env") });
@@ -84,7 +85,12 @@ async function buildServer() {
     await fastify.register(async function (fastify) {
       fastify.addHook("preHandler", async (request, reply) => {
         // Skip authentication for health check and public endpoints
-        const publicPaths = ["/health", "/api/media", "/api/tags"];
+        const publicPaths = [
+          "/health",
+          "/api/media",
+          "/api/tags",
+          "/api/storage",
+        ];
         const isPublicPath = publicPaths.some((path) =>
           request.url.startsWith(path)
         );
@@ -100,6 +106,7 @@ async function buildServer() {
 
       await fastify.register(mediaRoutes, { prefix: "/api" });
       await fastify.register(tagRoutes, { prefix: "/api" });
+      await fastify.register(storageRoutes, { prefix: "/api" });
     });
 
     // 404 handler
