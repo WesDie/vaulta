@@ -16,14 +16,18 @@ interface MediaGalleryProps {
 const getGridClasses = (size: string) => {
   switch (size) {
     case "small":
-      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12";
+      return "grid-cols-6 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-16 xl:grid-cols-20 2xl:grid-cols-24";
     case "medium":
-      return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
+      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
     case "large":
-      return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+      return "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5";
     default:
-      return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
+      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
   }
+};
+
+const getListClasses = () => {
+  return "flex flex-col space-y-2";
 };
 
 export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
@@ -33,7 +37,10 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   const galleryRef = useRef<HTMLDivElement>(null);
 
   const mediaFiles = response?.data || [];
-  const gridClasses = getGridClasses(viewMode.size);
+  const isListView = viewMode.type === "list";
+  const gridClasses = isListView
+    ? getListClasses()
+    : `grid ${getGridClasses(viewMode.size)} gap-1`;
 
   // Animate gallery items on load
   useEffect(() => {
@@ -43,16 +50,14 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         items,
         {
           opacity: 0,
-          y: 30,
-          scale: 0.9,
+          y: 20,
         },
         {
           opacity: 1,
           y: 0,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.05,
-          ease: "power3.out",
+          duration: 0.4,
+          stagger: 0.02,
+          ease: "power2.out",
         }
       );
     }
@@ -90,29 +95,59 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   const handleDeleteMedia = async (mediaId: string) => {
     try {
       await mediaApi.deleteMedia(mediaId);
-      // You might want to add a toast notification here for success
-      // For now, the UI will update when the data is refetched
       closeModal();
-      // Optionally trigger a refetch of media files
-      window.location.reload(); // Simple solution - you might want to use a better state management
+      window.location.reload();
     } catch (error) {
       console.error("Failed to delete media:", error);
-      // You might want to add a toast notification here for error
     }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="mb-8">
-          <div className="w-48 h-4 rounded bg-border animate-pulse"></div>
-        </div>
-        <div className={`grid ${gridClasses} gap-6`}>
-          {Array.from({ length: 12 }).map((_, i) => (
+      <div className="p-2">
+        <div
+          className={
+            isListView
+              ? "space-y-2"
+              : `grid ${getGridClasses(viewMode.size)} gap-1`
+          }
+        >
+          {Array.from({ length: isListView ? 8 : 24 }).map((_, i) => (
             <div
               key={i}
-              className="bg-muted aspect-square rounded-xl animate-pulse"
-            />
+              className={
+                isListView
+                  ? "bg-gray-200 h-16 rounded animate-pulse flex items-center space-x-4 p-4"
+                  : "bg-gray-200 aspect-square animate-pulse"
+              }
+            >
+              {isListView && (
+                <>
+                  <div className="w-12 h-12 bg-gray-300 rounded"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="w-3/4 h-3 bg-gray-300 rounded"></div>
+                    <div className="w-1/2 h-2 bg-gray-300 rounded"></div>
+                  </div>
+                </>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -123,7 +158,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md text-center">
-          <div className="w-20 h-20 mx-auto mb-6 text-muted-foreground">
+          <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
             <svg
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -136,18 +171,17 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="mb-3 text-xl font-semibold text-foreground">
+          <h3 className="mb-2 text-lg font-medium text-gray-900">
             Something went wrong
           </h3>
-          <p className="leading-relaxed text-muted-foreground">
-            We couldn't load your media files. Please refresh the page or try
-            again later.
+          <p className="mb-4 text-gray-600">
+            We couldn't load your media files.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-6 btn btn-primary"
+            className="px-4 py-2 text-sm text-white bg-black rounded hover:bg-gray-800"
           >
-            Refresh Page
+            Refresh
           </button>
         </div>
       </div>
@@ -158,7 +192,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md text-center">
-          <div className="w-20 h-20 mx-auto mb-6 text-muted-foreground animate-float">
+          <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
             <svg
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -171,19 +205,19 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               />
             </svg>
           </div>
-          <h3 className="mb-3 text-xl font-semibold text-foreground">
+          <h3 className="mb-2 text-lg font-medium text-gray-900">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
               ? "No matches found"
               : "No media yet"}
           </h3>
-          <p className="leading-relaxed text-muted-foreground">
+          <p className="text-gray-600">
             {filters.search ||
             filters.selectedTags.length > 0 ||
             filters.mimeType
-              ? "Try adjusting your search criteria or filters to find what you're looking for."
-              : "Start by uploading some images or videos to build your collection."}
+              ? "Try adjusting your search criteria."
+              : "Start by uploading some images or videos."}
           </p>
         </div>
       </div>
@@ -191,54 +225,68 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   }
 
   return (
-    <div className="p-8">
-      {/* Results info */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">
-            {mediaFiles.length}
-          </span>{" "}
-          {mediaFiles.length === 1 ? "item" : "items"}
-          {response?.pagination && (
-            <span className="ml-2 text-muted-foreground">
-              • Page {response.pagination.page} of{" "}
-              {response.pagination.totalPages}
-            </span>
-          )}
+    <div className="p-2">
+      {/* Results info - minimal */}
+      <div className="flex items-center justify-between px-2 mb-3">
+        <div className="text-xs text-gray-500">
+          {mediaFiles.length} {mediaFiles.length === 1 ? "item" : "items"}
         </div>
-
-        {/* Grid size indicator */}
-        <div className="font-mono text-xs text-muted-foreground">
-          {viewMode.size.toUpperCase()}
+        <div className="font-mono text-xs text-gray-400">
+          {viewMode.type.toUpperCase()} • {viewMode.size.toUpperCase()}
         </div>
       </div>
 
-      {/* Media grid */}
-      <div ref={galleryRef} className={`grid ${gridClasses} gap-6`}>
+      {/* Media grid/list - minimal spacing */}
+      <div ref={galleryRef} className={gridClasses}>
         {mediaFiles.map((media, index) => (
           <div
             key={media.id}
-            className="media-item"
-            style={{ animationDelay: `${index * 0.05}s` }}
+            className={isListView ? "media-item" : "media-item"}
           >
-            <MediaCard
-              media={media}
-              size={viewMode.size}
-              onSelect={handleMediaSelect}
-            />
+            {isListView ? (
+              // List view item
+              <div
+                className="flex items-center p-3 space-x-4 transition-colors rounded cursor-pointer bg-muted/30 hover:bg-muted/20"
+                onClick={() => handleMediaSelect(media)}
+              >
+                <div className="flex-shrink-0 w-12 h-12">
+                  <MediaCard media={media} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate text-primary">
+                    {media.filename}
+                  </p>
+                  <div className="flex items-center mt-1 space-x-4">
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(media.fileSize)}
+                    </p>
+                    {media.width && media.height && (
+                      <p className="text-xs text-muted-foreground">
+                        {media.width} × {media.height}
+                      </p>
+                    )}
+                    {media.createdAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(media.createdAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {media.tags && media.tags.length > 0 && (
+                  <div className="flex-shrink-0">
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">
+                      {media.tags.length} tags
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Grid view item
+              <MediaCard media={media} onSelect={handleMediaSelect} />
+            )}
           </div>
         ))}
       </div>
-
-      {/* Pagination hint */}
-      {response?.pagination && response.pagination.totalPages > 1 && (
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center px-4 py-2 text-sm rounded-full text-muted-foreground bg-muted">
-            <span className="w-2 h-2 mr-2 rounded-full bg-muted-foreground"></span>
-            More content available
-          </div>
-        </div>
-      )}
 
       {/* Media Modal */}
       <MediaModal

@@ -1,21 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { MediaFile } from "@/types";
 import { mediaApi } from "@/services/api";
 
 interface MediaCardProps {
   media: MediaFile;
-  size: "small" | "medium" | "large";
   onSelect?: (media: MediaFile) => void;
 }
 
-export function MediaCard({ media, size, onSelect }: MediaCardProps) {
+export function MediaCard({ media, onSelect }: MediaCardProps) {
   const [imageError, setImageError] = useState(false);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
   const [thumbnailGenerated, setThumbnailGenerated] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Use relative URLs for image optimization to work with Docker network
   // The Next.js rewrites will handle routing these to the backend
@@ -44,6 +46,25 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
     }
   };
 
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+
+    setMousePosition({ x, y });
+  }, []);
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setMousePosition({ x: 0, y: 0 });
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -52,13 +73,40 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const getFileExtension = (filename: string): string => {
+    return filename.split(".").pop()?.toUpperCase() || "FILE";
+  };
+
   const isVideo = media.mimeType.startsWith("video/");
   const isImage = media.mimeType.startsWith("image/");
 
+  // Calculate transform based on mouse position (subtle movement)
+  const transformStyle = {
+    transform: `translate(${mousePosition.x * 3}px, ${
+      mousePosition.y * 3
+    }px) scale(${isHovering ? 1.05 : 1})`,
+    transition: isHovering
+      ? "transform 0.1s ease-out"
+      : "transform 0.3s ease-out",
+  };
+
   return (
     <div
-      className="relative group cursor-pointer bg-card rounded-xl overflow-hidden border border-border hover:border-accent transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+      ref={cardRef}
+      className="relative overflow-hidden transition-opacity cursor-pointer group bg-black/5 hover:opacity-90"
       onClick={() => onSelect?.(media)}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Media Preview */}
       <div className="relative w-full overflow-hidden aspect-square">
@@ -70,7 +118,8 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
               }
               alt={media.filename}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover"
+              style={transformStyle}
               onError={() => setImageError(true)}
               onLoad={() => setImageLoading(false)}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -78,16 +127,16 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
               loading="lazy"
             />
             {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <div className="w-6 h-6 loading-spinner"></div>
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div className="w-4 h-4 border-2 border-gray-300 rounded-full border-t-gray-600 animate-spin"></div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
+          <div className="flex flex-col items-center justify-center w-full h-full bg-gray-100">
             {isVideo ? (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 text-muted-foreground">
+                <div className="w-8 h-8 mx-auto mb-2 text-gray-400">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -96,16 +145,11 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-card-foreground">
-                  Video
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatFileSize(media.fileSize)}
-                </p>
+                <p className="text-xs text-gray-600">Video</p>
               </div>
             ) : isImage ? (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 text-muted-foreground">
+                <div className="w-8 h-8 mx-auto mb-2 text-gray-400">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -114,32 +158,24 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-card-foreground">
-                  Image
-                </p>
                 {!thumbnailUrl && !thumbnailLoading && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleGenerateThumbnail();
                     }}
-                    className="px-3 py-1 mt-2 text-xs transition-colors rounded-full text-muted-foreground bg-accent hover:bg-accent/80"
+                    className="px-2 py-1 text-xs text-gray-600 bg-white rounded hover:bg-gray-50"
                   >
-                    Generate Thumbnail
+                    Generate
                   </button>
                 )}
                 {thumbnailLoading && (
-                  <div className="flex items-center justify-center mt-2">
-                    <div className="w-4 h-4 mr-2 loading-spinner"></div>
-                    <span className="text-xs text-muted-foreground">
-                      Generating...
-                    </span>
-                  </div>
+                  <div className="w-4 h-4 mx-auto border-2 border-gray-300 rounded-full border-t-gray-600 animate-spin"></div>
                 )}
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 text-muted-foreground">
+                <div className="w-8 h-8 mx-auto mb-2 text-gray-400">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -148,23 +184,42 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-card-foreground">
-                  Document
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatFileSize(media.fileSize)}
-                </p>
+                <p className="text-xs text-gray-600">File</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Video indicator */}
+        {/* Hover Info Overlay */}
+        {isHovering && (
+          <div className="absolute inset-0 flex items-end justify-start p-3 transition-all duration-300 ease-out bg-black/60">
+            <div className="space-y-1 text-sm text-white transition-all duration-300 ease-out transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
+              <div className="font-medium">
+                {getFileExtension(media.filename)}
+              </div>
+              <div className="text-xs opacity-90">
+                {formatFileSize(media.fileSize)}
+              </div>
+              {media.width && media.height && (
+                <div className="text-xs opacity-90">
+                  {media.width} × {media.height}
+                </div>
+              )}
+              {media.createdAt && (
+                <div className="text-xs opacity-90">
+                  {formatDate(media.createdAt)}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Video indicator - minimal */}
         {isVideo && !imageError && (
-          <div className="absolute top-3 left-3">
-            <div className="p-2 rounded-lg bg-black/60 backdrop-blur-sm">
+          <div className="absolute top-1 left-1">
+            <div className="p-1 rounded bg-black/50">
               <svg
-                className="w-4 h-4 text-white"
+                className="w-3 h-3 text-white"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -174,56 +229,14 @@ export function MediaCard({ media, size, onSelect }: MediaCardProps) {
           </div>
         )}
 
-        {/* Tags indicator */}
+        {/* Tags indicator - minimal */}
         {media.tags && media.tags.length > 0 && (
-          <div className="absolute top-3 right-3">
-            <div className="px-2 py-1 text-xs font-medium text-white rounded-lg bg-black/60 backdrop-blur-sm">
+          <div className="absolute top-1 right-1">
+            <div className="px-1 py-0.5 text-xs text-white bg-black/50 rounded">
               {media.tags.length}
             </div>
           </div>
         )}
-
-        {/* Hover Overlay */}
-        <div className="absolute inset-0 transition-all duration-300 opacity-0 bg-black/0 group-hover:bg-black/30 group-hover:opacity-100">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="p-3 rounded-full bg-card backdrop-blur-sm">
-              <svg
-                className="w-6 h-6 text-card-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Media Info */}
-      <div className="p-4">
-        <h3 className="mb-1 text-sm font-medium truncate text-card-foreground">
-          {media.filename}
-        </h3>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{formatFileSize(media.fileSize)}</span>
-          {media.width && media.height && (
-            <span>
-              {media.width} × {media.height}
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );
