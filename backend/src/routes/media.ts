@@ -343,10 +343,84 @@ export async function mediaRoutes(fastify: FastifyInstance) {
           message: "File uploaded successfully",
         });
       } catch (error) {
-        fastify.log.error(error);
+        fastify.log.error("Upload error:", error);
+
+        // Provide more specific error messages
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+
+        // Check if this is a duplicate file error
+        if (errorMessage.includes("already exists")) {
+          reply.status(409).send({
+            success: false,
+            error: errorMessage,
+          });
+          return;
+        }
+
+        // Check if this is a file type error
+        if (errorMessage.includes("Unsupported file type")) {
+          reply.status(400).send({
+            success: false,
+            error: errorMessage,
+          });
+          return;
+        }
+
         reply.status(500).send({
           success: false,
           error: "Failed to upload file",
+          details: errorMessage,
+        });
+      }
+    }
+  );
+
+  // Batch upload media files with filtering
+  fastify.post(
+    "/media/upload/batch",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const parts = request.files();
+        const uploadResults = [];
+        let uploaded = 0;
+        let skipped = 0;
+
+        for await (const part of parts) {
+          try {
+            const result = await mediaService.uploadMediaFile(part);
+            uploadResults.push({
+              filename: part.filename,
+              status: "success",
+              data: result,
+            });
+            uploaded++;
+          } catch (error) {
+            fastify.log.error(`Failed to upload ${part.filename}:`, error);
+            uploadResults.push({
+              filename: part.filename,
+              status: "error",
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+            skipped++;
+          }
+        }
+
+        reply.send({
+          success: true,
+          data: {
+            uploaded,
+            skipped,
+            total: uploaded + skipped,
+            results: uploadResults,
+          },
+          message: `Batch upload completed. ${uploaded} files uploaded, ${skipped} files skipped.`,
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        reply.status(500).send({
+          success: false,
+          error: "Failed to process batch upload",
         });
       }
     }

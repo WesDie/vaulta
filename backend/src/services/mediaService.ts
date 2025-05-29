@@ -401,6 +401,16 @@ export class MediaService {
           return value.toISOString();
         }
 
+        // Handle strings - remove null bytes and other problematic characters
+        if (typeof value === "string") {
+          // Remove null bytes and other control characters that cause JSON issues
+          return value
+            .replace(/\u0000/g, "") // Remove null bytes
+            .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "") // Remove other control characters
+            .replace(/\\/g, "\\\\") // Escape backslashes
+            .trim();
+        }
+
         // Handle arrays
         if (Array.isArray(value)) {
           return value.map((item, index) =>
@@ -423,26 +433,40 @@ export class MediaService {
             // Try to convert to plain object
             try {
               const plainObj = JSON.parse(JSON.stringify(value));
-              return plainObj;
+              const cleanedPlainObj: Record<string, any> = {};
+              for (const [key, val] of Object.entries(plainObj)) {
+                cleanedPlainObj[key] = cleanValue(val, `${keyPath}.${key}`);
+              }
+              return cleanedPlainObj;
             } catch (e) {
               console.warn(
                 `Failed to serialize object at ${keyPath}, converting to string:`,
                 e instanceof Error ? e.message : String(e)
               );
-              return `[${value.constructor.name}: ${String(value)}]`;
+              // Clean the string representation too
+              const stringRep = `[${value.constructor.name}: ${String(value)}]`;
+              return stringRep
+                .replace(/\u0000/g, "")
+                .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+                .replace(/\\/g, "\\\\");
             }
           }
 
           const cleanedObj: Record<string, any> = {};
           for (const [key, val] of Object.entries(value)) {
             try {
-              cleanedObj[key] = cleanValue(val, `${keyPath}.${key}`);
+              // Clean the key as well
+              const cleanKey = String(key)
+                .replace(/\u0000/g, "")
+                .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+                .replace(/\\/g, "\\\\");
+              cleanedObj[cleanKey] = cleanValue(val, `${keyPath}.${key}`);
             } catch (error) {
               console.warn(
                 `Failed to clean value at ${keyPath}.${key}:`,
                 error
               );
-              cleanedObj[key] = `[Error: ${
+              cleanedObj[String(key)] = `[Error: ${
                 error instanceof Error ? error.message : "Unknown error"
               }]`;
             }
@@ -465,7 +489,7 @@ export class MediaService {
           return value.toString();
         }
 
-        // Return primitive values as-is
+        // Return primitive values as-is (numbers, booleans)
         return value;
       } catch (error) {
         console.warn(`Error cleaning value at ${keyPath}:`, error);
@@ -478,17 +502,37 @@ export class MediaService {
     try {
       for (const [key, value] of Object.entries(exifData)) {
         try {
-          cleaned[key] = cleanValue(value, key);
+          // Clean the key as well
+          const cleanKey = String(key)
+            .replace(/\u0000/g, "")
+            .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+            .replace(/\\/g, "\\\\");
+          cleaned[cleanKey] = cleanValue(value, key);
         } catch (error) {
           console.warn(`Failed to clean EXIF key ${key}:`, error);
-          cleaned[key] = `[Error: ${
+          cleaned[String(key)] = `[Error: ${
             error instanceof Error ? error.message : "Unknown error"
           }]`;
         }
       }
 
-      // Test if the cleaned data can be JSON stringified
-      JSON.stringify(cleaned);
+      // Test if the cleaned data can be JSON stringified and is safe for PostgreSQL
+      const testString = JSON.stringify(cleaned);
+
+      // Additional check for any remaining problematic characters
+      if (
+        testString.includes("\u0000") ||
+        /[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(testString)
+      ) {
+        console.warn(
+          "Cleaned EXIF data still contains problematic characters, applying final sanitization"
+        );
+        const sanitizedString = testString
+          .replace(/\u0000/g, "")
+          .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "");
+        return JSON.parse(sanitizedString);
+      }
+
       console.log(
         `Successfully cleaned EXIF data with keys:`,
         Object.keys(cleaned)
@@ -507,9 +551,29 @@ export class MediaService {
   }
 
   async uploadMediaFile(fileData: any): Promise<MediaFile> {
-    const buffer = await fileData.toBuffer();
     const filename = fileData.filename;
+
+    // Validate file type
+    if (!this.isValidMediaFile(filename)) {
+      throw new Error(
+        `Unsupported file type: ${path.extname(
+          filename
+        )}. Only images and videos are supported.`
+      );
+    }
+
+    const buffer = await fileData.toBuffer();
     const originalPath = path.join(this.originalsPath, filename);
+
+    // Check if file already exists
+    const existingFile = await db.query(
+      "SELECT id FROM media_files WHERE filename = $1",
+      [filename]
+    );
+
+    if (existingFile.rows.length > 0) {
+      throw new Error(`File '${filename}' already exists in the database.`);
+    }
 
     // Ensure originals directory exists
     await fs.mkdir(this.originalsPath, { recursive: true });
@@ -554,7 +618,15 @@ export class MediaService {
 
     // Extract EXIF data for images and generate thumbnail
     if (mimeType.startsWith("image/")) {
-      await this.extractExifData(originalPath, mediaId);
+      try {
+        await this.extractExifData(originalPath, mediaId);
+      } catch (error) {
+        console.error(
+          `Failed to extract EXIF data for uploaded file ${filename}:`,
+          error
+        );
+        // Don't throw the error - file upload should still succeed
+      }
 
       // Auto-generate thumbnail
       try {
@@ -564,6 +636,7 @@ export class MediaService {
           `Failed to generate thumbnail for uploaded file ${filename}:`,
           error
         );
+        // Don't throw the error - file upload should still succeed
       }
     }
 
@@ -702,6 +775,44 @@ export class MediaService {
     };
 
     return mimeTypes[ext] || "application/octet-stream";
+  }
+
+  private isValidMediaFile(filename: string): boolean {
+    const ext = path.extname(filename).toLowerCase();
+    const supportedExtensions = [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".bmp",
+      ".tiff", // Images
+      ".mp4",
+      ".avi",
+      ".mov",
+      ".mkv",
+      ".webm",
+      ".m4v", // Videos
+    ];
+    return supportedExtensions.includes(ext);
+  }
+
+  private getFileType(filename: string): "image" | "video" | "unknown" {
+    const ext = path.extname(filename).toLowerCase();
+    const imageExtensions = [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".bmp",
+      ".tiff",
+    ];
+    const videoExtensions = [".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v"];
+
+    if (imageExtensions.includes(ext)) return "image";
+    if (videoExtensions.includes(ext)) return "video";
+    return "unknown";
   }
 
   private async enrichMediaFile(row: any): Promise<MediaFile> {
