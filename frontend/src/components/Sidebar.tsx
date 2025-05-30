@@ -30,7 +30,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
   return (
     <div className="relative h-full overflow-hidden sidebar">
       {/* Scrollable Content */}
-      <div className="h-full p-6 pb-32 overflow-y-auto">
+      <div className="h-full p-6 pb-40 overflow-y-auto">
         {/* Header */}
         <div className="mb-8">
           <h2 className="text-sm font-semibold tracking-wider uppercase text-foreground">
