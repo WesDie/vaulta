@@ -17,8 +17,8 @@ export function MediaModal({
   hasPrevious,
   hasNext,
   onDelete,
-}: MediaModalProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  mediaFiles = [], // Add mediaFiles prop for preloading
+}: MediaModalProps & { mediaFiles?: MediaFile[] }) {
   const [showMetadata, setShowMetadata] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [imageContainerHeight, setImageContainerHeight] = useState<number>(0);
@@ -37,6 +37,38 @@ export function MediaModal({
   // Handle media data updates (e.g., after EXIF extraction)
   const handleMediaUpdate = (updatedMedia: MediaFile) => {
     setFullMediaData(updatedMedia);
+  };
+
+  // Generate preload URLs for adjacent images
+  const getPreloadUrls = () => {
+    if (!media || !mediaFiles.length) return [];
+
+    const currentIndex = mediaFiles.findIndex((m) => m.id === media.id);
+    const preloadUrls: { thumbnailUrl: string; fullImageUrl: string }[] = [];
+
+    // Preload previous image
+    if (currentIndex > 0) {
+      const prevMedia = mediaFiles[currentIndex - 1];
+      if (prevMedia?.mimeType.startsWith("image/")) {
+        preloadUrls.push({
+          thumbnailUrl: `/api/media/${prevMedia.id}/image?size=thumb`,
+          fullImageUrl: `/originals/${prevMedia.filename}`,
+        });
+      }
+    }
+
+    // Preload next image
+    if (currentIndex < mediaFiles.length - 1) {
+      const nextMedia = mediaFiles[currentIndex + 1];
+      if (nextMedia?.mimeType.startsWith("image/")) {
+        preloadUrls.push({
+          thumbnailUrl: `/api/media/${nextMedia.id}/image?size=thumb`,
+          fullImageUrl: `/originals/${nextMedia.filename}`,
+        });
+      }
+    }
+
+    return preloadUrls;
   };
 
   // Fetch complete media file data when modal opens or media changes
@@ -90,9 +122,23 @@ export function MediaModal({
     setResetTransform(() => resetFn);
   };
 
+  // Enhanced navigation that resets transform and shows immediate feedback
+  const handleNavigation = (direction: "previous" | "next") => {
+    // Reset zoom/pan immediately for better UX
+    if (resetTransform) {
+      resetTransform();
+    }
+
+    // Call the navigation handler
+    if (direction === "previous" && onPrevious) {
+      onPrevious();
+    } else if (direction === "next" && onNext) {
+      onNext();
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(true);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -135,10 +181,10 @@ export function MediaModal({
           onClose();
           break;
         case "ArrowLeft":
-          if (hasPrevious && onPrevious) onPrevious();
+          if (hasPrevious) handleNavigation("previous");
           break;
         case "ArrowRight":
-          if (hasNext && onNext) onNext();
+          if (hasNext) handleNavigation("next");
           break;
         case "i":
         case "I":
@@ -192,8 +238,8 @@ export function MediaModal({
         onToggleMetadata={() => setShowMetadata(!showMetadata)}
         onResetZoom={() => resetTransform && resetTransform()}
         onClose={onClose}
-        onPrevious={onPrevious}
-        onNext={onNext}
+        onPrevious={() => handleNavigation("previous")}
+        onNext={() => handleNavigation("next")}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
         isImage={isImage}
@@ -216,10 +262,9 @@ export function MediaModal({
         >
           <MediaViewer
             media={currentMedia}
-            isLoading={isLoading}
-            onLoadingChange={setIsLoading}
             onHeightChange={setImageContainerHeight}
             onResetTransform={handleResetTransform}
+            preloadUrls={getPreloadUrls()}
           />
         </div>
 

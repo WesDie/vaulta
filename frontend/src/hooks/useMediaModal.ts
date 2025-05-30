@@ -43,5 +43,6 @@ export function useMediaModal(mediaFiles: MediaFile[]) {
     navigateToMedia,
     hasPrevious,
     hasNext,
+    mediaFiles,
   };
 }

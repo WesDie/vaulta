@@ -3,5 +3,7 @@ export { MediaViewer } from "./MediaViewer";
 export { MetadataSidebar } from "./MetadataSidebar";
 export { MediaControls } from "./MediaControls";
 export { ZoomIndicator } from "./ZoomIndicator";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { useZoom } from "./useZoom";
-export * from "./types";
+export { useProgressiveImageLoad } from "./useProgressiveImageLoad";
+export type * from "./types";

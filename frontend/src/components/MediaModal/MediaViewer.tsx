@@ -1,25 +1,22 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import Image from "next/image";
 import { useZoom } from "./useZoom";
 import { ZoomIndicator } from "./ZoomIndicator";
+import { useProgressiveImageLoad } from "./useProgressiveImageLoad";
 
 interface MediaViewerComponentProps {
   media: any;
-  isLoading: boolean;
-  onLoadingChange: (loading: boolean) => void;
   onHeightChange?: (height: number) => void;
   onResetTransform?: (resetFn: () => void) => void;
+  preloadUrls?: { thumbnailUrl: string; fullImageUrl: string }[]; // For preloading adjacent images
 }
 
 export function MediaViewer({
   media,
-  isLoading,
-  onLoadingChange,
   onHeightChange,
   onResetTransform,
+  preloadUrls = [],
 }: MediaViewerComponentProps) {
-  const [imageSize, setImageSize] = useState<"thumb" | "full">("thumb");
-  const [fullImageLoaded, setFullImageLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -34,6 +31,21 @@ export function MediaViewer({
     media,
     containerRef,
   });
+
+  const isImage = media?.mimeType?.startsWith("image/");
+  const isVideo = media?.mimeType?.startsWith("video/");
+
+  // Generate URLs for progressive loading
+  const thumbnailUrl = `/api/media/${media?.id}/image?size=thumb`;
+  const fullImageUrl = `/originals/${media?.filename}`;
+
+  const { loadState, preloadImage, handleFullImageRender } =
+    useProgressiveImageLoad({
+      mediaId: media?.id || "",
+      thumbnailUrl,
+      fullImageUrl,
+      priority: true,
+    });
 
   // Track container height changes
   useEffect(() => {
@@ -67,33 +79,24 @@ export function MediaViewer({
     }
   }, [onResetTransform, resetTransform]);
 
-  const optimizedImageUrl = `/api/media/${media.id}/image?size=thumb`;
-  const originalUrl = `/originals/${media.filename}`;
-  const isImage = media.mimeType.startsWith("image/");
-  const isVideo = media.mimeType.startsWith("video/");
+  // Preload adjacent images for faster navigation
+  useEffect(() => {
+    preloadUrls.forEach(({ thumbnailUrl: thumbUrl, fullImageUrl: fullUrl }) => {
+      preloadImage(thumbUrl);
+      preloadImage(fullUrl);
+    });
+  }, [preloadUrls, preloadImage]);
 
-  const handleThumbnailLoad = () => {
-    onLoadingChange(false);
-    if (!fullImageLoaded) {
-      setImageSize("full");
+  // Update height after images load
+  useEffect(() => {
+    if (loadState.thumbnailLoaded || loadState.fullImageLoaded) {
+      setTimeout(() => {
+        if (containerRef.current && onHeightChange) {
+          onHeightChange(containerRef.current.offsetHeight);
+        }
+      }, 100);
     }
-    // Update height after image loads
-    setTimeout(() => {
-      if (containerRef.current && onHeightChange) {
-        onHeightChange(containerRef.current.offsetHeight);
-      }
-    }, 100);
-  };
-
-  const handleFullImageLoad = () => {
-    setFullImageLoaded(true);
-    // Update height after full image loads
-    setTimeout(() => {
-      if (containerRef.current && onHeightChange) {
-        onHeightChange(containerRef.current.offsetHeight);
-      }
-    }, 100);
-  };
+  }, [loadState.thumbnailLoaded, loadState.fullImageLoaded, onHeightChange]);
 
   return (
     <div
@@ -105,85 +108,117 @@ export function MediaViewer({
       `}
       style={{ minHeight: "60vh" }}
     >
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 rounded-full animate-spin border-border border-t-foreground" />
-        </div>
-      )}
-
       {isImage && (
-        <div
-          className="relative flex items-center justify-center max-w-full max-h-full"
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          style={{
-            transform: `scale(${transform.scale}) translate(${transform.x}px, ${transform.y}px)`,
-            transition: isDragging ? "none" : "transform 0.2s ease-out",
-            cursor:
-              transform.scale > 1
-                ? isDragging
-                  ? "grabbing"
-                  : "grab"
-                : "default",
-          }}
-        >
-          {/* Thumbnail image */}
-          {imageSize === "thumb" && (
-            <Image
-              src={optimizedImageUrl}
-              alt={media.filename}
-              width={media.width || 800}
-              height={media.height || 600}
-              className="object-contain max-w-full max-h-[80vh] select-none"
-              onLoad={handleThumbnailLoad}
-              onError={() => onLoadingChange(false)}
-              priority
-              draggable={false}
-            />
-          )}
+        <>
+          {/* Image container */}
+          <div
+            className="relative flex items-center justify-center max-w-full max-h-full"
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            style={{
+              transform: `scale(${transform.scale}) translate(${transform.x}px, ${transform.y}px)`,
+              transition: isDragging ? "none" : "transform 0.2s ease-out",
+              cursor:
+                transform.scale > 1
+                  ? isDragging
+                    ? "grabbing"
+                    : "grab"
+                  : "default",
+            }}
+          >
+            {/* Show thumbnail first (unless we're showing full image first for cached content) */}
+            {!loadState.showFullImageFirst && loadState.thumbnailLoaded && (
+              <Image
+                src={thumbnailUrl}
+                alt={media.filename}
+                width={media.width || 800}
+                height={media.height || 600}
+                className={`
+                  object-contain max-w-full max-h-[80vh] select-none
+                  transition-opacity duration-300
+                  ${loadState.fullImageRendered ? "opacity-0" : "opacity-100"}
+                `}
+                draggable={false}
+                priority
+              />
+            )}
 
-          {/* Full resolution image */}
-          {imageSize === "full" && (
-            <Image
-              src={originalUrl}
-              alt={media.filename}
-              width={media.width || 800}
-              height={media.height || 600}
-              className={`
-                object-contain max-w-full max-h-[80vh] select-none
-                transition-opacity duration-500
-                ${fullImageLoaded ? "opacity-100" : "opacity-0"}
-              `}
-              onLoad={handleFullImageLoad}
-              onError={() => setFullImageLoaded(true)}
-              priority
-              draggable={false}
-            />
-          )}
+            {/* Full resolution image */}
+            {loadState.fullImageLoaded && (
+              <Image
+                src={fullImageUrl}
+                alt={media.filename}
+                width={media.width || 800}
+                height={media.height || 600}
+                className={`
+                  ${loadState.showFullImageFirst ? "" : "absolute inset-0"} 
+                  object-contain max-w-full max-h-[80vh] select-none 
+                  transition-opacity duration-500
+                  ${loadState.fullImageRendered ? "opacity-100" : "opacity-0"}
+                `}
+                onLoad={handleFullImageRender}
+                draggable={false}
+                priority
+              />
+            )}
 
-          {/* Show thumbnail behind full image until it loads */}
-          {imageSize === "full" && !fullImageLoaded && (
-            <Image
-              src={optimizedImageUrl}
-              alt={media.filename}
-              width={media.width || 800}
-              height={media.height || 600}
-              className="absolute inset-0 object-contain max-w-full max-h-[80vh] select-none"
-              style={{ zIndex: -1 }}
-              draggable={false}
-            />
+            {/* Error state */}
+            {loadState.error && (
+              <div className="flex flex-col items-center gap-3 p-8 text-center">
+                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10">
+                  <svg
+                    className="w-8 h-8 text-destructive"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Failed to load image
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    The image could not be loaded. Please try again.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quality indicator */}
+          {!loadState.showFullImageFirst &&
+            loadState.thumbnailLoaded &&
+            !loadState.fullImageRendered &&
+            !loadState.error && (
+              <div className="absolute z-20 flex items-center px-3 py-2 text-xs border rounded-lg top-4 left-4 bg-background/80 backdrop-blur-sm border-border">
+                <div className="w-2 h-2 mr-2 bg-yellow-500 rounded-full" />
+                Preview Quality
+              </div>
+            )}
+
+          {loadState.fullImageRendered && (
+            <div className="absolute z-20 flex items-center px-3 py-2 text-xs border rounded-lg top-4 left-4 bg-background/80 backdrop-blur-sm border-border">
+              <div className="w-2 h-2 mr-2 bg-green-500 rounded-full" />
+              Full Quality
+            </div>
           )}
-        </div>
+        </>
       )}
 
       {isVideo && (
         <video
-          src={originalUrl}
+          src={fullImageUrl}
           controls
           className="max-w-full max-h-[80vh] rounded-none"
           onLoadedData={() => {
-            onLoadingChange(false);
             // Update height after video loads
             setTimeout(() => {
               if (containerRef.current && onHeightChange) {
@@ -191,7 +226,6 @@ export function MediaViewer({
               }
             }, 100);
           }}
-          onError={() => onLoadingChange(false)}
         >
           Your browser does not support the video tag.
         </video>

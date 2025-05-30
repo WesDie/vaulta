@@ -9,6 +9,7 @@ export interface MediaModalProps {
   hasPrevious?: boolean;
   hasNext?: boolean;
   onDelete?: (mediaId: string) => void;
+  mediaFiles?: MediaFile[];
 }
 
 export interface ImageTransform {
