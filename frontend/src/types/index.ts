@@ -3,6 +3,7 @@ export interface MediaFile {
   filename: string;
   originalPath: string;
   thumbnailPath?: string;
+  blurHash?: string; // BlurHash for instant placeholder loading
   fileSize: number;
   mimeType: string;
   width?: number;

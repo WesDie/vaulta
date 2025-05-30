@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import Image from "next/image";
 import { gsap } from "gsap";
 import { MediaFile } from "@/types";
 import { mediaApi } from "@/services/api";
+import OptimizedImage from "./OptimizedImage";
 
 interface MediaCardProps {
   media: MediaFile;
@@ -21,21 +21,11 @@ export function MediaCard({
 }: MediaCardProps) {
   const [imageError, setImageError] = useState(false);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
   const [cardWidth, setCardWidth] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
-
-  // Use relative URLs for image optimization to work with Docker network
-  // The Next.js rewrites will handle routing these to the backend
-  const optimizedImageUrl = `/api/media/${media.id}/image?size=thumb`;
-
-  // Fallback to thumbnail path if the optimized endpoint doesn't work
-  const thumbnailUrl = media.thumbnailPath
-    ? `/api${media.thumbnailPath}`
-    : null;
 
   // Check card width on mount and resize
   useEffect(() => {
@@ -58,7 +48,6 @@ export function MediaCard({
         // Update the media object with new thumbnail path
         media.thumbnailPath = result.data.thumbnailPath;
         setImageError(false);
-        setImageLoading(true); // Reset loading state to show new image
       }
     } catch (error) {
       console.error("Failed to generate thumbnail:", error);
@@ -184,6 +173,13 @@ export function MediaCard({
   const isVideo = media.mimeType.startsWith("video/");
   const isImage = media.mimeType.startsWith("image/");
 
+  // Determine optimal image size based on card dimensions
+  const getOptimalImageSize = (): "small" | "medium" | "large" => {
+    if (cardWidth <= 150) return "small";
+    if (cardWidth <= 300) return "medium";
+    return "large";
+  };
+
   return (
     <div
       ref={cardRef}
@@ -198,28 +194,17 @@ export function MediaCard({
     >
       {/* Media Preview */}
       <div className="relative w-full h-full overflow-hidden rounded-xl">
-        {(isImage || thumbnailUrl) && !imageError ? (
-          <>
-            <Image
-              src={
-                isImage ? optimizedImageUrl : thumbnailUrl || optimizedImageUrl
-              }
-              alt={media.filename}
-              fill
-              className="object-cover transition-transform duration-300"
-              onError={() => setImageError(true)}
-              onLoad={() => setImageLoading(false)}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority={false}
-              loading="lazy"
-              ref={imageRef}
-            />
-            {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <div className="w-4 h-4 loading-spinner"></div>
-              </div>
-            )}
-          </>
+        {(isImage || media.thumbnailPath) && !imageError ? (
+          <OptimizedImage
+            ref={imageRef}
+            media={media}
+            size={getOptimalImageSize()}
+            className="object-cover transition-transform duration-300"
+            onError={() => setImageError(true)}
+            fill
+            loading="lazy"
+            alt={media.filename}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-br from-muted/50 to-muted">
             {isVideo ? (
@@ -248,7 +233,7 @@ export function MediaCard({
                     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
                   </svg>
                 </div>
-                {!thumbnailUrl && !thumbnailLoading && (
+                {!media.thumbnailPath && !thumbnailLoading && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
