@@ -18,7 +18,7 @@ const filtersToQuery = (filters: FilterState): MediaQuery => ({
   mimeType: filters.mimeType || undefined,
   sortBy: filters.sortBy,
   sortOrder: filters.sortOrder,
-  limit: 200, // Increased default limit for better performance
+  limit: 1000, // Increased limit for better infinite loading performance
 });
 
 export const useMediaFiles = (filters: FilterState) => {
@@ -43,7 +43,8 @@ export const useInfiniteMediaFiles = (filters: FilterState) => {
       getNextPageParam: (lastPage) => {
         if (lastPage.data && lastPage.pagination) {
           const { page, totalPages } = lastPage.pagination;
-          return page < totalPages ? page + 1 : undefined;
+          let newPage: number | undefined = Number(page) + 1;
+          return Number(page) < Number(totalPages) ? newPage : undefined;
         }
         return undefined;
       },

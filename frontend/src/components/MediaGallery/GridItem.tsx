@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { MediaFile } from "@/types";
 import { MediaCard } from "../MediaCard";
 import { ModernCheckbox } from "../ModernCheckbox";
@@ -12,8 +11,6 @@ export interface GridItemData {
   selectedItems: Set<string>;
   onMediaSelect: (media: MediaFile) => void;
   onToggleSelection: (id: string) => void;
-  onLoadMore: () => void;
-  hasNextPage: boolean;
 }
 
 interface GridItemProps {
@@ -36,19 +33,10 @@ export function GridItem({
     selectedItems,
     onMediaSelect,
     onToggleSelection,
-    onLoadMore,
-    hasNextPage,
   } = data;
 
   const index = rowIndex * columnCount + columnIndex;
   const media = mediaFiles[index];
-
-  // Load more items when approaching the end
-  useEffect(() => {
-    if (index > mediaFiles.length - 20 && hasNextPage) {
-      onLoadMore();
-    }
-  }, [index, mediaFiles.length, hasNextPage, onLoadMore]);
 
   if (!media) {
     // Show loading placeholder for empty slots

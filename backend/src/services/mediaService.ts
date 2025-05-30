@@ -15,7 +15,7 @@ export class MediaService {
   ): Promise<PaginatedResponse<MediaFile>> {
     const {
       page = 1,
-      limit = 200,
+      limit = 1000,
       tags,
       collections,
       mimeType,

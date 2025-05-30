@@ -96,10 +96,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   const itemSize = getItemSize(viewMode.size);
 
   // Add extra rows for loading placeholders
-  const displayItemCount = Math.min(
-    mediaFiles.length + (hasNextPage ? 20 : 0),
-    totalCount
-  );
+  const displayItemCount = mediaFiles.length + (hasNextPage ? 50 : 0);
   const rowCount = Math.ceil(displayItemCount / columnCount);
 
   // Improved dimension tracking with immediate measurement
@@ -318,6 +315,49 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Scroll-based infinite loading for virtual grid
+  const lastScrollLogRef = useRef(0);
+  const handleGridScroll = useCallback(
+    ({ scrollTop, scrollHeight, clientHeight }: any) => {
+      // Trigger loading when user scrolls to within 200px of the bottom
+      const threshold = 200;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // Throttled debug logging (every 500ms)
+      const now = Date.now();
+      if (now - lastScrollLogRef.current > 500) {
+        lastScrollLogRef.current = now;
+      }
+
+      if (
+        distanceFromBottom < threshold &&
+        hasNextPage &&
+        !isFetchingNextPage
+      ) {
+        console.log("Triggering load more...");
+        handleLoadMore();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, handleLoadMore, mediaFiles.length]
+  );
+
+  // Alternative infinite loading using onItemsRendered
+  const handleItemsRendered = useCallback(
+    ({ visibleRowStartIndex, visibleRowStopIndex }: any) => {
+      const totalRows = rowCount;
+      const threshold = 5; // Load more when within 5 rows of the end
+
+      if (
+        visibleRowStopIndex >= totalRows - threshold &&
+        hasNextPage &&
+        !isFetchingNextPage
+      ) {
+        handleLoadMore();
+      }
+    },
+    [rowCount, hasNextPage, isFetchingNextPage, handleLoadMore]
+  );
+
   // Early returns for different states
   if (isLoading) {
     return <LoadingState />;
@@ -340,8 +380,6 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     selectedItems,
     onMediaSelect: handleMediaSelect,
     onToggleSelection: toggleItemSelection,
-    onLoadMore: handleLoadMore,
-    hasNextPage: hasNextPage ?? false,
   };
 
   return (
@@ -432,6 +470,8 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
                 width={containerWidth}
                 itemData={gridItemData}
                 style={{ overflowX: "hidden", overflowY: "auto" }}
+                onScroll={handleGridScroll}
+                onItemsRendered={handleItemsRendered}
               >
                 {GridItem}
               </Grid>
