@@ -18,18 +18,18 @@ interface MediaGalleryProps {
 const getGridClasses = (size: string) => {
   switch (size) {
     case "small":
-      return "grid-cols-6 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-16 xl:grid-cols-20 2xl:grid-cols-24";
+      return "grid-cols-6 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-16 xl:grid-cols-20 2xl:grid-cols-24 auto-rows-min";
     case "medium":
-      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
+      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 auto-rows-min";
     case "large":
-      return "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5";
+      return "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 auto-rows-min";
     default:
-      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
+      return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 auto-rows-min";
   }
 };
 
 const getListClasses = () => {
-  return "flex flex-col space-y-2";
+  return "flex flex-col space-y-2 h-full overflow-y-auto";
 };
 
 export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
@@ -49,7 +49,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   const isListView = viewMode.type === "list";
   const gridClasses = isListView
     ? getListClasses()
-    : `grid ${getGridClasses(viewMode.size)} gap-1`;
+    : `grid ${getGridClasses(viewMode.size)} gap-1 h-full overflow-y-auto`;
 
   // Animate gallery items on load
   useEffect(() => {
@@ -378,7 +378,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   }
 
   return (
-    <div className="p-2">
+    <div className="flex flex-col h-full p-2">
       {/* Selection toolbar */}
       {selectionMode ? (
         <SelectionToolbar
@@ -436,7 +436,9 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         {mediaFiles.map((media, index) => (
           <div
             key={media.id}
-            className={`media-item ${selectionMode ? "selection-mode" : ""}`}
+            className={`media-item h-fit ${
+              selectionMode ? "selection-mode" : ""
+            }`}
           >
             {isListView ? (
               // List view item
