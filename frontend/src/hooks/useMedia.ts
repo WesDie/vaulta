@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "react-query";
 import { mediaApi, tagsApi } from "@/services/api";
 import { MediaQuery, FilterState } from "@/types";
 
@@ -13,7 +18,7 @@ const filtersToQuery = (filters: FilterState): MediaQuery => ({
   mimeType: filters.mimeType || undefined,
   sortBy: filters.sortBy,
   sortOrder: filters.sortOrder,
-  limit: 50, // Default limit
+  limit: 200, // Increased default limit for better performance
 });
 
 export const useMediaFiles = (filters: FilterState) => {
@@ -24,6 +29,31 @@ export const useMediaFiles = (filters: FilterState) => {
     retry: 3,
     refetchOnWindowFocus: false,
   });
+};
+
+// New infinite query hook for large datasets
+export const useInfiniteMediaFiles = (filters: FilterState) => {
+  const baseQuery = filtersToQuery(filters);
+
+  return useInfiniteQuery(
+    ["media-infinite", baseQuery],
+    ({ pageParam = 1 }) =>
+      mediaApi.getMediaFiles({ ...baseQuery, page: pageParam }),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data && lastPage.pagination) {
+          const { page, totalPages } = lastPage.pagination;
+          return page < totalPages ? page + 1 : undefined;
+        }
+        return undefined;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 3,
+      refetchOnWindowFocus: false,
+      // Keep only last 5 pages in memory to prevent memory issues
+      keepPreviousData: true,
+    }
+  );
 };
 
 export const useMediaFile = (id: string) => {

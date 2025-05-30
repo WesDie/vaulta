@@ -15,7 +15,7 @@ export class MediaService {
   ): Promise<PaginatedResponse<MediaFile>> {
     const {
       page = 1,
-      limit = 20,
+      limit = 200,
       tags,
       collections,
       mimeType,
@@ -87,12 +87,13 @@ export class MediaService {
     const countResult = await db.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get media files with pagination
+    // Optimized query - only get essential fields for gallery view
+    // EXIF data is loaded separately when needed (in modal)
     const dataQuery = `
-      SELECT DISTINCT m.*, e.camera, e.lens, e.date_taken, e.focal_length, e.aperture, 
-             e.shutter_speed, e.iso, e.gps_latitude, e.gps_longitude, e.raw_exif_data
+      SELECT m.id, m.filename, m.original_path, m.thumbnail_path, 
+             m.file_size, m.mime_type, m.width, m.height, 
+             m.created_at, m.updated_at
       FROM media_files m
-      LEFT JOIN exif_data e ON m.id = e.media_file_id
       ${whereClause}
       ${orderClause}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -101,10 +102,10 @@ export class MediaService {
 
     const result = await db.query(dataQuery, queryParams);
 
-    // Get tags and collections for each media file
+    // Lightweight enrichment - only get tags count for gallery view
     const mediaFiles: MediaFile[] = [];
     for (const row of result.rows) {
-      const mediaFile = await this.enrichMediaFile(row);
+      const mediaFile = await this.enrichMediaFileLight(row);
       mediaFiles.push(mediaFile);
     }
 
@@ -1020,6 +1021,40 @@ export class MediaService {
       exifData,
       tags: tagsResult.rows,
       collections: collectionsResult.rows,
+    };
+  }
+
+  // Lightweight version for gallery view - only loads essential data
+  private async enrichMediaFileLight(row: any): Promise<MediaFile> {
+    // Get tags count only (not full tag data)
+    const tagsQuery = `
+      SELECT COUNT(*) as tag_count
+      FROM media_tags mt
+      WHERE mt.media_file_id = $1
+    `;
+    const tagsResult = await db.query(tagsQuery, [row.id]);
+    const tagCount = parseInt(tagsResult.rows[0].tag_count || 0);
+
+    // Create minimal tags array for display
+    const tags =
+      tagCount > 0
+        ? Array(tagCount).fill({ id: "", name: "tag", color: "" })
+        : [];
+
+    return {
+      id: row.id,
+      filename: row.filename,
+      originalPath: row.original_path,
+      thumbnailPath: row.thumbnail_path,
+      fileSize: parseInt(row.file_size),
+      mimeType: row.mime_type,
+      width: row.width,
+      height: row.height,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      tags, // Simplified tags for gallery view
+      collections: [], // Empty for gallery view
+      // No EXIF data for gallery view - loaded separately when needed
     };
   }
 }

@@ -126,7 +126,7 @@
   }
 
   .loading-spinner {
-    @apply border-2 rounded-full border-border animate-spin border-t-primary;
+    @apply border-2 rounded-full border-muted-foreground/20 border-t-primary animate-spin;
   }
 
   .hero-gradient {
@@ -169,35 +169,19 @@
   }
 
   .selection-overlay {
-    @apply absolute inset-0 z-10 border-2 shadow-2xl rounded-[1rem] pointer-events-none;
-    background: linear-gradient(
-      135deg,
-      hsl(var(--selection-accent) / 0.2) 0%,
-      hsl(var(--selection-accent) / 0.1) 50%,
-      transparent 100%
-    );
-    border-color: hsl(var(--selection-accent) / 0.4);
+    @apply absolute inset-0 border-2 rounded-lg pointer-events-none bg-primary/20 border-primary;
+  }
+
+  .selection-overlay-active {
+    @apply relative;
   }
 
   .selection-list-bg {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--selection-accent) / 0.1) 0%,
-      hsl(var(--selection-accent) / 0.05) 50%,
-      transparent 100%
-    );
-    @apply border-2 shadow-xl transform scale-[0.98];
-    border-color: hsl(var(--selection-accent) / 0.3);
-    box-shadow: 0 25px 50px -12px hsl(var(--selection-accent) / 0.1);
+    @apply border-l-4 bg-primary/10 border-primary;
   }
 
   .selection-list-glow {
-    @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--selection-accent) / 0.08) 0%,
-      transparent 100%
-    );
+    @apply absolute inset-0 pointer-events-none bg-gradient-to-r from-primary/20 to-transparent;
   }
 
   .selection-mode-card {
@@ -216,6 +200,14 @@
 
   .selection-mode-card:hover::before {
     @apply opacity-100;
+  }
+
+  .media-item {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  .media-item:hover:not(.selection-mode) {
+    @apply scale-[1.02];
   }
 }
 
@@ -251,6 +243,10 @@
 
   .animate-shimmer {
     animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  .overflow-y-auto {
+    scroll-behavior: smooth;
   }
 }
 

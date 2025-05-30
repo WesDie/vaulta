@@ -7,6 +7,7 @@ export function MetadataSidebar({
   media,
   showMetadata,
   imageContainerHeight,
+  onMediaUpdate,
 }: MetadataSidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -54,13 +55,17 @@ export function MetadataSidebar({
       const result = await mediaApi.extractExif(media.id);
       console.log("EXIF extraction result:", result);
 
-      if (result.success) {
-        // Instead of reloading, we should update the media object
-        // For now, we'll reload but this should be improved to update the parent component
-        alert(
-          "EXIF data extracted successfully! The page will refresh to show the new data."
-        );
-        window.location.reload();
+      if (result.success && result.data) {
+        // Update the media data in the modal instead of reloading the page
+        if (onMediaUpdate) {
+          onMediaUpdate(result.data);
+        } else {
+          // Fallback to page reload if no callback is provided
+          alert(
+            "EXIF data extracted successfully! The page will refresh to show the new data."
+          );
+          window.location.reload();
+        }
       } else {
         console.error("EXIF extraction failed:", result);
         alert(

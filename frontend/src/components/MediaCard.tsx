@@ -169,16 +169,17 @@ export function MediaCard({
   return (
     <div
       ref={cardRef}
-      className={`relative overflow-hidden transition-all duration-300 cursor-pointer group rounded-xl ${
+      className={`relative w-full h-full overflow-hidden transition-all duration-300 cursor-pointer group rounded-xl ${
         selectionMode ? "selection-mode-card" : ""
       }`}
+      style={{ boxSizing: "border-box" }}
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* Media Preview */}
-      <div className="relative w-full overflow-hidden aspect-square rounded-xl">
+      <div className="relative w-full h-full overflow-hidden rounded-xl">
         {(isImage || thumbnailUrl) && !imageError ? (
           <>
             <Image
