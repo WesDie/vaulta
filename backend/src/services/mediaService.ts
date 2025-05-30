@@ -4,11 +4,17 @@ import sharp from "sharp";
 import * as exifr from "exifr";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { ThumbnailService } from "./thumbnailService";
 
 export class MediaService {
   private originalsPath =
     process.env.MEDIA_ORIGINALS_PATH || "./data/originals";
   private thumbsPath = process.env.MEDIA_THUMBS_PATH || "./data/thumbs";
+  private thumbnailService: ThumbnailService;
+
+  constructor() {
+    this.thumbnailService = new ThumbnailService(this.thumbsPath);
+  }
 
   async getMediaFiles(
     query: MediaQuery
@@ -95,7 +101,7 @@ export class MediaService {
 
     // Always include date_taken in the query so the frontend can prioritize photo date
     const dataQuery = `
-      SELECT m.id, m.filename, m.original_path, m.thumbnail_path, 
+      SELECT m.id, m.filename, m.original_path, m.thumbnail_path, m.blur_hash,
              m.file_size, m.mime_type, m.width, m.height, 
              m.created_at, m.updated_at, e.date_taken
       FROM media_files m
@@ -126,8 +132,8 @@ export class MediaService {
 
   async getMediaFileById(id: string): Promise<MediaFile | null> {
     const query = `
-      SELECT m.id, m.filename, m.original_path, m.thumbnail_path, m.file_size, 
-             m.mime_type, m.width, m.height, m.created_at, m.updated_at,
+      SELECT m.id, m.filename, m.original_path, m.thumbnail_path, m.blur_hash,
+             m.file_size, m.mime_type, m.width, m.height, m.created_at, m.updated_at,
              e.camera, e.lens, e.focal_length, e.aperture, e.shutter_speed, 
              e.iso, e.date_taken, e.gps_latitude, e.gps_longitude, e.raw_exif_data
       FROM media_files m
@@ -147,49 +153,36 @@ export class MediaService {
     const mediaFile = await this.getMediaFileById(mediaId);
     if (!mediaFile) return null;
 
-    // Use the original path directly instead of joining with filename
-    const originalPath = mediaFile.originalPath;
-    const fileExtension = path.extname(mediaFile.filename);
-    const baseName = path.basename(mediaFile.filename, fileExtension);
-    const thumbnailName = `thumb_${baseName}_${mediaFile.id}.jpg`;
-    const thumbnailPath = path.join(this.thumbsPath, thumbnailName);
+    if (!mediaFile.mimeType.startsWith("image/")) return null;
 
     try {
-      // Check if thumbnail already exists
-      try {
-        await fs.access(thumbnailPath);
-        // Make sure it's also recorded in the database
-        await db.query(
-          "UPDATE media_files SET thumbnail_path = $1 WHERE id = $2",
-          [`/thumbs/${thumbnailName}`, mediaId]
-        );
-        return `/thumbs/${thumbnailName}`;
-      } catch {
-        // Thumbnail doesn't exist, create it
+      // Check if thumbnails already exist
+      const thumbnailsExist = await this.thumbnailService.thumbnailsExist(
+        mediaId,
+        mediaFile.filename
+      );
+
+      if (thumbnailsExist && mediaFile.thumbnailPath && mediaFile.blurHash) {
+        return mediaFile.thumbnailPath;
       }
 
-      // Ensure thumbs directory exists
-      await fs.mkdir(this.thumbsPath, { recursive: true });
+      // Generate optimized thumbnails and blur hash
+      const result = await this.thumbnailService.generateOptimizedThumbnails(
+        mediaFile.originalPath,
+        mediaId,
+        mediaFile.filename
+      );
 
-      if (mediaFile.mimeType.startsWith("image/")) {
-        await sharp(originalPath)
-          .resize(800, 800, {
-            fit: "inside",
-            withoutEnlargement: true,
-          })
-          .jpeg({ quality: 92 })
-          .toFile(thumbnailPath);
+      // Update database with blur hash and primary thumbnail path (large)
+      const primaryThumbnailPath =
+        result.thumbnailPaths.large || result.thumbnailPaths.medium || null;
 
-        // Update database with thumbnail path
-        await db.query(
-          "UPDATE media_files SET thumbnail_path = $1 WHERE id = $2",
-          [`/thumbs/${thumbnailName}`, mediaId]
-        );
+      await db.query(
+        "UPDATE media_files SET thumbnail_path = $1, blur_hash = $2 WHERE id = $3",
+        [primaryThumbnailPath, result.blurHash, mediaId]
+      );
 
-        return `/thumbs/${thumbnailName}`;
-      }
-
-      return null;
+      return primaryThumbnailPath;
     } catch (error) {
       console.error("Error generating thumbnail:", error);
       return null;
@@ -635,12 +628,28 @@ export class MediaService {
         // Don't throw the error - file upload should still succeed
       }
 
-      // Auto-generate thumbnail
+      // Auto-generate optimized thumbnails and blur hash
       try {
-        await this.generateThumbnail(mediaId);
+        const thumbnailResult =
+          await this.thumbnailService.generateOptimizedThumbnails(
+            originalPath,
+            mediaId,
+            filename
+          );
+
+        // Update database with blur hash and primary thumbnail path
+        const primaryThumbnailPath =
+          thumbnailResult.thumbnailPaths.large ||
+          thumbnailResult.thumbnailPaths.medium ||
+          null;
+
+        await db.query(
+          "UPDATE media_files SET thumbnail_path = $1, blur_hash = $2 WHERE id = $3",
+          [primaryThumbnailPath, thumbnailResult.blurHash, mediaId]
+        );
       } catch (error) {
         console.error(
-          `Failed to generate thumbnail for uploaded file ${filename}:`,
+          `Failed to generate thumbnails for uploaded file ${filename}:`,
           error
         );
         // Don't throw the error - file upload should still succeed
@@ -684,18 +693,11 @@ export class MediaService {
       // Delete thumbnail file if it exists
       if (mediaFile.thumbnailPath) {
         try {
-          const thumbnailFilename = mediaFile.thumbnailPath.replace(
-            "/thumbs/",
-            ""
-          );
-          const fullThumbnailPath = path.join(
-            this.thumbsPath,
-            thumbnailFilename
-          );
-          await fs.unlink(fullThumbnailPath);
+          // Use new thumbnail service to delete all thumbnail sizes
+          await this.thumbnailService.deleteThumbnails(id, mediaFile.filename);
         } catch (error) {
           console.warn(
-            `Failed to delete thumbnail file: ${mediaFile.thumbnailPath}`,
+            `Failed to delete thumbnail files for: ${mediaFile.filename}`,
             error
           );
         }
@@ -798,18 +800,14 @@ export class MediaService {
         // Delete thumbnail file if it exists
         if (mediaFile.thumbnailPath) {
           try {
-            const thumbnailFilename = mediaFile.thumbnailPath.replace(
-              "/thumbs/",
-              ""
+            // Use new thumbnail service to delete all thumbnail sizes
+            await this.thumbnailService.deleteThumbnails(
+              id,
+              mediaFile.filename
             );
-            const fullThumbnailPath = path.join(
-              this.thumbsPath,
-              thumbnailFilename
-            );
-            await fs.unlink(fullThumbnailPath);
           } catch (error) {
             console.warn(
-              `Failed to delete thumbnail file: ${mediaFile.thumbnailPath}`,
+              `Failed to delete thumbnail files for: ${mediaFile.filename}`,
               error
             );
           }
@@ -992,24 +990,7 @@ export class MediaService {
                     longitude: parseFloat(row.gps_longitude),
                   }
                 : undefined,
-            rawExifData: row.raw_exif_data
-              ? (() => {
-                  try {
-                    // If it's already an object, return it directly
-                    if (typeof row.raw_exif_data === "object") {
-                      return row.raw_exif_data;
-                    }
-                    // If it's a string, try to parse it
-                    return JSON.parse(row.raw_exif_data);
-                  } catch (error) {
-                    console.error(
-                      `Failed to parse raw_exif_data for media ${row.id}:`,
-                      error
-                    );
-                    return { error: "Invalid EXIF data format" };
-                  }
-                })()
-              : undefined,
+            rawExifData: row.raw_exif_data,
           }
         : undefined;
 
@@ -1018,6 +999,7 @@ export class MediaService {
       filename: row.filename,
       originalPath: row.original_path,
       thumbnailPath: row.thumbnail_path,
+      blurHash: row.blur_hash,
       fileSize: parseInt(row.file_size),
       mimeType: row.mime_type,
       width: row.width,
@@ -1026,7 +1008,10 @@ export class MediaService {
       updatedAt: row.updated_at,
       exifData,
       tags: tagsResult.rows,
-      collections: collectionsResult.rows,
+      collections: collectionsResult.rows.map((col) => ({
+        ...col,
+        mediaCount: 0, // We don't calculate this in individual media queries
+      })),
     };
   }
 
@@ -1068,15 +1053,16 @@ export class MediaService {
       filename: row.filename,
       originalPath: row.original_path,
       thumbnailPath: row.thumbnail_path,
+      blurHash: row.blur_hash,
       fileSize: parseInt(row.file_size),
       mimeType: row.mime_type,
       width: row.width,
       height: row.height,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      exifData, // Include minimal EXIF data with dateTaken
-      tags, // Simplified tags for gallery view
-      collections: [], // Empty for gallery view
+      exifData,
+      tags,
+      collections: [],
     };
   }
 }

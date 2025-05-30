@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS media_files (
     filename VARCHAR(255) NOT NULL,
     original_path TEXT NOT NULL UNIQUE,
     thumbnail_path TEXT,
+    blur_hash VARCHAR(100), -- BlurHash for instant placeholder loading
     file_size BIGINT NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     width INTEGER,

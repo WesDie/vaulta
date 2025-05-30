@@ -113,13 +113,15 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     async (
       request: FastifyRequest<{
         Params: { id: string };
-        Querystring: { size?: string };
+        Querystring: {
+          size?: "micro" | "small" | "medium" | "large" | "thumb" | "full";
+        };
       }>,
       reply: FastifyReply
     ) => {
       try {
         const { id } = request.params;
-        const { size = "thumb" } = request.query;
+        const { size = "large" } = request.query;
 
         const mediaFile = await mediaService.getMediaFileById(id);
         if (!mediaFile || !mediaFile.mimeType.startsWith("image/")) {
@@ -127,59 +129,79 @@ export async function mediaRoutes(fastify: FastifyInstance) {
           return;
         }
 
-        // For thumb size, try to serve thumbnail or generate it
-        if (size === "thumb") {
-          // Try to generate thumbnail if it doesn't exist
-          if (!mediaFile.thumbnailPath) {
-            await mediaService.generateThumbnail(id);
-            const updatedMedia = await mediaService.getMediaFileById(id);
-            if (updatedMedia?.thumbnailPath) {
-              mediaFile.thumbnailPath = updatedMedia.thumbnailPath;
-            }
-          }
+        // Aggressive caching for thumbnails
+        const isFullSize = size === "full";
+        const cacheAge = isFullSize ? 3600 : 31536000; // 1 hour for full, 1 year for thumbnails
 
-          // If we have a thumbnail path, try to serve it
-          if (mediaFile.thumbnailPath) {
-            const thumbnailFilename = mediaFile.thumbnailPath.replace(
-              "/thumbs/",
-              ""
+        reply.header("Cache-Control", `public, max-age=${cacheAge}, immutable`);
+        reply.header("ETag", `"${mediaFile.id}-${size}"`);
+
+        // Check if client has cached version
+        const ifNoneMatch = request.headers["if-none-match"];
+        if (ifNoneMatch === `"${mediaFile.id}-${size}"`) {
+          reply.status(304).send();
+          return;
+        }
+
+        // For full size, serve original file
+        if (size === "full") {
+          try {
+            const originalPath = path.resolve(mediaFile.originalPath);
+            const fileStream = await fs.readFile(originalPath);
+
+            reply.header("Content-Type", mediaFile.mimeType);
+            return reply.send(fileStream);
+          } catch (error) {
+            fastify.log.error(
+              `Failed to read original file: ${mediaFile.originalPath}`,
+              error
             );
-            const thumbsDir = process.env.MEDIA_THUMBS_PATH || "./data/thumbs";
-            const fullThumbnailPath = path.resolve(
-              thumbsDir,
-              thumbnailFilename
-            );
-
-            try {
-              await fs.access(fullThumbnailPath);
-              const fileStream = await fs.readFile(fullThumbnailPath);
-
-              reply.header("Content-Type", "image/jpeg");
-              reply.header("Cache-Control", "public, max-age=31536000");
-              return reply.send(fileStream);
-            } catch (error) {
-              fastify.log.warn(
-                `Thumbnail file not accessible: ${fullThumbnailPath}`,
-                error
-              );
-            }
+            reply.status(404).send("File not found");
+            return;
           }
         }
 
-        // For full size or if thumbnail fallback, serve original file
-        try {
-          const originalPath = path.resolve(mediaFile.originalPath);
-          const fileStream = await fs.readFile(originalPath);
+        // For thumbnails, try to serve the specific size
+        const thumbnailSize = size === "thumb" ? "large" : size; // Map "thumb" to "large" for backward compatibility
+        const fileExtension = path.extname(mediaFile.filename);
+        const baseName = path.basename(mediaFile.filename, fileExtension);
+        const thumbnailName = `${thumbnailSize}_${baseName}_${mediaFile.id}.webp`;
+        const thumbsDir = process.env.MEDIA_THUMBS_PATH || "./data/thumbs";
+        const thumbnailPath = path.resolve(thumbsDir, thumbnailName);
 
-          reply.header("Content-Type", mediaFile.mimeType);
-          reply.header("Cache-Control", "public, max-age=3600");
+        try {
+          await fs.access(thumbnailPath);
+          const fileStream = await fs.readFile(thumbnailPath);
+
+          reply.header("Content-Type", "image/webp");
           return reply.send(fileStream);
         } catch (error) {
-          fastify.log.error(
-            `Failed to read original file: ${mediaFile.originalPath}`,
-            error
-          );
-          reply.status(404).send("File not found");
+          // Thumbnail doesn't exist, try to generate it
+          fastify.log.info(`Thumbnail not found, generating: ${thumbnailName}`);
+
+          try {
+            await mediaService.generateThumbnail(id);
+            // Try to serve the generated thumbnail
+            const fileStream = await fs.readFile(thumbnailPath);
+            reply.header("Content-Type", "image/webp");
+            return reply.send(fileStream);
+          } catch (genError) {
+            fastify.log.warn(`Failed to generate thumbnail: ${genError}`);
+
+            // Fallback to original file
+            try {
+              const originalPath = path.resolve(mediaFile.originalPath);
+              const fileStream = await fs.readFile(originalPath);
+
+              reply.header("Content-Type", mediaFile.mimeType);
+              return reply.send(fileStream);
+            } catch (originalError) {
+              fastify.log.error(
+                `Failed to serve any version of image: ${originalError}`
+              );
+              reply.status(404).send("File not found");
+            }
+          }
         }
       } catch (error) {
         fastify.log.error("Error serving optimized image:", error);
