@@ -459,6 +459,50 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Bulk delete media files
+  fastify.delete(
+    "/media/bulk",
+    async (
+      request: FastifyRequest<{ Body: { ids: string[] } }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const { ids } = request.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          reply.status(400).send({
+            success: false,
+            error: "IDs array is required and must not be empty",
+          });
+          return;
+        }
+
+        // Validate that all IDs are strings
+        if (!ids.every((id) => typeof id === "string")) {
+          reply.status(400).send({
+            success: false,
+            error: "All IDs must be strings",
+          });
+          return;
+        }
+
+        const result = await mediaService.deleteMediaFiles(ids);
+
+        reply.send({
+          success: true,
+          data: result,
+          message: `Bulk delete completed. ${result.success.length} files deleted, ${result.failed.length} failed.`,
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        reply.status(500).send({
+          success: false,
+          error: "Failed to perform bulk delete",
+        });
+      }
+    }
+  );
+
   // Scan media directory
   fastify.post(
     "/media/scan",

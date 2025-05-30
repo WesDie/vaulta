@@ -705,6 +705,131 @@ export class MediaService {
     }
   }
 
+  async deleteMediaFiles(ids: string[]): Promise<{
+    success: string[];
+    failed: Array<{ id: string; error: string }>;
+  }> {
+    const result = {
+      success: [] as string[],
+      failed: [] as Array<{ id: string; error: string }>,
+    };
+
+    if (ids.length === 0) {
+      return result;
+    }
+
+    // Get all media files first to validate they exist and get file paths
+    const mediaFiles = new Map<string, MediaFile>();
+    for (const id of ids) {
+      try {
+        const mediaFile = await this.getMediaFileById(id);
+        if (mediaFile) {
+          mediaFiles.set(id, mediaFile);
+        } else {
+          result.failed.push({ id, error: "Media file not found" });
+        }
+      } catch (error) {
+        result.failed.push({
+          id,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    const validIds = Array.from(mediaFiles.keys());
+    if (validIds.length === 0) {
+      return result;
+    }
+
+    try {
+      // Start a transaction for database operations
+      await db.query("BEGIN");
+
+      // Delete from related tables first (due to foreign key constraints)
+      const placeholders = validIds
+        .map((_, index) => `$${index + 1}`)
+        .join(",");
+
+      await db.query(
+        `DELETE FROM media_tags WHERE media_file_id IN (${placeholders})`,
+        validIds
+      );
+
+      await db.query(
+        `DELETE FROM media_collections WHERE media_file_id IN (${placeholders})`,
+        validIds
+      );
+
+      await db.query(
+        `DELETE FROM exif_data WHERE media_file_id IN (${placeholders})`,
+        validIds
+      );
+
+      // Delete the main records
+      await db.query(
+        `DELETE FROM media_files WHERE id IN (${placeholders})`,
+        validIds
+      );
+
+      // Commit the transaction
+      await db.query("COMMIT");
+
+      // Now delete physical files (outside transaction)
+      for (const id of validIds) {
+        const mediaFile = mediaFiles.get(id)!;
+
+        try {
+          // Delete original file
+          await fs.unlink(mediaFile.originalPath);
+        } catch (error) {
+          console.warn(
+            `Failed to delete original file: ${mediaFile.originalPath}`,
+            error
+          );
+        }
+
+        // Delete thumbnail file if it exists
+        if (mediaFile.thumbnailPath) {
+          try {
+            const thumbnailFilename = mediaFile.thumbnailPath.replace(
+              "/thumbs/",
+              ""
+            );
+            const fullThumbnailPath = path.join(
+              this.thumbsPath,
+              thumbnailFilename
+            );
+            await fs.unlink(fullThumbnailPath);
+          } catch (error) {
+            console.warn(
+              `Failed to delete thumbnail file: ${mediaFile.thumbnailPath}`,
+              error
+            );
+          }
+        }
+
+        result.success.push(id);
+      }
+    } catch (error) {
+      // Rollback on error
+      await db.query("ROLLBACK");
+      console.error("Error in bulk delete transaction:", error);
+
+      // Add all valid IDs to failed list
+      for (const id of validIds) {
+        result.failed.push({
+          id,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Database transaction failed",
+        });
+      }
+    }
+
+    return result;
+  }
+
   async scanMediaDirectory(): Promise<{ scanned: number; added: number }> {
     const { scanDirectory } = await import("../scripts/scanMedia");
 
