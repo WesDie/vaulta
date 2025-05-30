@@ -6,6 +6,8 @@ import { FilterState, ViewMode, MediaFile } from "@/types";
 import { useMediaFiles } from "@/hooks/useMedia";
 import { MediaCard } from "./MediaCard";
 import { MediaModal } from "./MediaModal";
+import { SelectionToolbar } from "./SelectionToolbar";
+import { ModernCheckbox } from "./ModernCheckbox";
 import { mediaApi } from "@/services/api";
 
 interface MediaGalleryProps {
@@ -33,6 +35,13 @@ const getListClasses = () => {
 export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
   const { data: response, isLoading, error } = useMediaFiles(filters);
   const galleryRef = useRef<HTMLDivElement>(null);
 
@@ -63,9 +72,102 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     }
   }, [mediaFiles]);
 
+  // Clear selection when switching out of selection mode
+  useEffect(() => {
+    if (!selectionMode) {
+      setSelectedItems(new Set());
+    }
+  }, [selectionMode]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (event.key.toLowerCase()) {
+        case "s":
+          if (!selectionMode && mediaFiles.length > 0) {
+            event.preventDefault();
+            enterSelectionMode();
+          }
+          break;
+        case "escape":
+          if (selectionMode) {
+            event.preventDefault();
+            exitSelectionMode();
+          }
+          break;
+        case "a":
+          if (selectionMode && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            selectAll();
+          }
+          break;
+        case "delete":
+        case "backspace":
+          if (selectionMode && selectedItems.size > 0) {
+            event.preventDefault();
+            handleBulkDelete();
+          }
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectionMode, selectedItems, mediaFiles.length]);
+
+  // Auto-dismiss notifications
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   const handleMediaSelect = (media: MediaFile) => {
-    setSelectedMedia(media);
-    setIsModalOpen(true);
+    if (selectionMode) {
+      toggleItemSelection(media.id);
+    } else {
+      setSelectedMedia(media);
+      setIsModalOpen(true);
+    }
+  };
+
+  const toggleItemSelection = (id: string) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedItems(new Set(mediaFiles.map((m) => m.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
+
+  const enterSelectionMode = () => {
+    setSelectionMode(true);
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
   };
 
   const closeModal = () => {
@@ -99,6 +201,57 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
       window.location.reload();
     } catch (error) {
       console.error("Failed to delete media:", error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.size === 0) return;
+
+    const confirmMessage = `Are you sure you want to delete ${
+      selectedItems.size
+    } item${
+      selectedItems.size === 1 ? "" : "s"
+    }? This action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await mediaApi.bulkDeleteMedia(
+        Array.from(selectedItems)
+      );
+
+      if (response.success && response.data) {
+        const { success, failed } = response.data;
+
+        let message = `Successfully deleted ${success.length} item${
+          success.length === 1 ? "" : "s"
+        }`;
+        if (failed.length > 0) {
+          message += `. Failed to delete ${failed.length} item${
+            failed.length === 1 ? "" : "s"
+          }`;
+          console.error("Failed deletions:", failed);
+        }
+
+        setNotification({ message, type: "success" });
+
+        // Exit selection mode and refresh
+        exitSelectionMode();
+        window.location.reload();
+      } else {
+        throw new Error(response.error || "Bulk delete failed");
+      }
+    } catch (error) {
+      console.error("Failed to bulk delete media:", error);
+      setNotification({
+        message: "Failed to delete selected items. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -226,63 +379,182 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
 
   return (
     <div className="p-2">
-      {/* Results info - minimal */}
-      <div className="flex items-center justify-between px-2 mb-3">
-        <div className="text-xs text-muted-foreground">
-          {mediaFiles.length} {mediaFiles.length === 1 ? "item" : "items"}
+      {/* Selection toolbar */}
+      {selectionMode ? (
+        <SelectionToolbar
+          selectedCount={selectedItems.size}
+          totalCount={mediaFiles.length}
+          onSelectAll={selectAll}
+          onClearSelection={clearSelection}
+          onBulkDelete={handleBulkDelete}
+          onExitSelection={exitSelectionMode}
+          isDeleting={isDeleting}
+        />
+      ) : (
+        /* Results info - minimal */
+        <div className="flex items-center justify-between px-2 mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="text-sm font-medium text-muted-foreground">
+              {mediaFiles.length} {mediaFiles.length === 1 ? "item" : "items"}
+            </div>
+            {mediaFiles.length > 0 && (
+              <button
+                onClick={enterSelectionMode}
+                className="flex items-center text-sm btn btn-secondary"
+                title="Press 'S' key"
+              >
+                <svg
+                  className="w-4 h-4 mr-1.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <rect
+                    x="3"
+                    y="3"
+                    width="18"
+                    height="18"
+                    rx="2"
+                    ry="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                  />
+                </svg>
+                Select
+              </button>
+            )}
+          </div>
+          <div className="px-3 py-1 font-mono text-xs rounded-lg text-muted-foreground bg-muted">
+            {viewMode.type.toUpperCase()} • {viewMode.size.toUpperCase()}
+          </div>
         </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          {viewMode.type.toUpperCase()} • {viewMode.size.toUpperCase()}
-        </div>
-      </div>
+      )}
 
       {/* Media grid/list - minimal spacing */}
       <div ref={galleryRef} className={gridClasses}>
         {mediaFiles.map((media, index) => (
           <div
             key={media.id}
-            className={isListView ? "media-item" : "media-item"}
+            className={`media-item ${selectionMode ? "selection-mode" : ""}`}
           >
             {isListView ? (
               // List view item
               <div
-                className="flex items-center p-3 space-x-4 transition-colors rounded cursor-pointer bg-muted/30 hover:bg-muted/20"
+                className={`flex items-center p-4 space-x-4 transition-all duration-300 rounded-xl cursor-pointer relative overflow-hidden ${
+                  selectionMode && selectedItems.has(media.id)
+                    ? "selection-list-bg"
+                    : "bg-card hover:bg-card/80 shadow-sm hover:shadow-md"
+                }`}
                 onClick={() => handleMediaSelect(media)}
               >
-                <div className="flex-shrink-0 w-12 h-12">
-                  <MediaCard media={media} />
+                {/* Subtle selection glow effect */}
+                {selectionMode && selectedItems.has(media.id) && (
+                  <div className="selection-list-glow" />
+                )}
+
+                {selectionMode && (
+                  <div className="z-10 flex-shrink-0">
+                    <ModernCheckbox
+                      checked={selectedItems.has(media.id)}
+                      onChange={(checked) => {
+                        if (checked) {
+                          setSelectedItems(
+                            (prev) => new Set([...Array.from(prev), media.id])
+                          );
+                        } else {
+                          setSelectedItems((prev) => {
+                            const newSet = new Set(prev);
+                            newSet.delete(media.id);
+                            return newSet;
+                          });
+                        }
+                      }}
+                      size="md"
+                    />
+                  </div>
+                )}
+
+                <div className="flex-shrink-0 w-12 h-12 overflow-hidden rounded-lg">
+                  <MediaCard
+                    media={media}
+                    selectionMode={selectionMode}
+                    onSelect={handleMediaSelect}
+                    onToggleSelection={toggleItemSelection}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-primary">
+                  <p className="text-sm font-semibold truncate text-card-foreground">
                     {media.filename}
                   </p>
-                  <div className="flex items-center mt-1 space-x-4">
-                    <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center mt-1 space-x-4 text-xs text-muted-foreground">
+                    <span className="font-medium">
                       {formatFileSize(media.fileSize)}
-                    </p>
+                    </span>
                     {media.width && media.height && (
-                      <p className="text-xs text-muted-foreground">
+                      <span>
                         {media.width} × {media.height}
-                      </p>
+                      </span>
                     )}
                     {media.createdAt && (
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(media.createdAt)}
-                      </p>
+                      <span>{formatDate(media.createdAt)}</span>
                     )}
                   </div>
                 </div>
                 {media.tags && media.tags.length > 0 && (
                   <div className="flex-shrink-0">
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full text-primary bg-muted-foreground/20">
-                      {media.tags.length} tags
+                    <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary bg-accent rounded-full">
+                      {media.tags.length} tag
+                      {media.tags.length !== 1 ? "s" : ""}
                     </span>
                   </div>
                 )}
               </div>
             ) : (
-              // Grid view item
-              <MediaCard media={media} onSelect={handleMediaSelect} />
+              // Grid view item with selection overlay
+              <div className="relative group/selection">
+                {selectionMode && (
+                  <div className="absolute z-20 top-2 left-2">
+                    <ModernCheckbox
+                      checked={selectedItems.has(media.id)}
+                      onChange={(checked) => {
+                        if (checked) {
+                          setSelectedItems(
+                            (prev) => new Set([...Array.from(prev), media.id])
+                          );
+                        } else {
+                          setSelectedItems((prev) => {
+                            const newSet = new Set(prev);
+                            newSet.delete(media.id);
+                            return newSet;
+                          });
+                        }
+                      }}
+                      size="md"
+                    />
+                  </div>
+                )}
+
+                {/* Selection overlay for better visual feedback */}
+                {selectionMode && selectedItems.has(media.id) && (
+                  <div className="selection-overlay" />
+                )}
+
+                <div
+                  className={`relative transition-all duration-300 ${
+                    selectionMode && selectedItems.has(media.id)
+                      ? "transform scale-95 shadow-2xl"
+                      : ""
+                  }`}
+                >
+                  <MediaCard
+                    media={media}
+                    selectionMode={selectionMode}
+                    onSelect={handleMediaSelect}
+                    onToggleSelection={toggleItemSelection}
+                  />
+                </div>
+              </div>
             )}
           </div>
         ))}
@@ -299,6 +571,86 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         hasNext={hasNext}
         onDelete={handleDeleteMedia}
       />
+
+      {/* Notification */}
+      {notification && (
+        <div
+          className={`fixed bottom-6 right-6 px-4 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-xl border transition-all duration-300 ${
+            notification.type === "success"
+              ? "bg-green-500/90 text-white border-green-400/50"
+              : notification.type === "error"
+              ? "bg-red-500/90 text-white border-red-400/50"
+              : "bg-blue-500/90 text-white border-blue-400/50"
+          }`}
+        >
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              {notification.type === "success" ? (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              ) : notification.type === "error" ? (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm font-medium">{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              className="flex-shrink-0 ml-3 transition-colors text-white/80 hover:text-white"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

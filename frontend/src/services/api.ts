@@ -56,6 +56,20 @@ export const mediaApi = {
     return response.data;
   },
 
+  bulkDeleteMedia: async (
+    ids: string[]
+  ): Promise<
+    ApiResponse<{
+      success: string[];
+      failed: Array<{ id: string; error: string }>;
+    }>
+  > => {
+    const response = await api.delete("/api/media/bulk", {
+      data: { ids },
+    });
+    return response.data;
+  },
+
   extractExif: async (id: string): Promise<ApiResponse<MediaFile>> => {
     const response = await api.post(`/api/media/${id}/extract-exif`);
     return response.data;

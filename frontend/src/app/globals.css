@@ -26,6 +26,7 @@
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
     --radius: 0.5rem;
+    --selection-accent: 210 100% 50%;
   }
 
   .dark {
@@ -48,6 +49,7 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
+    --selection-accent: 210 100% 50%;
   }
 
   html {
@@ -164,6 +166,56 @@
       rgba(255, 255, 255, 0.1) 50%,
       transparent 100%
     );
+  }
+
+  .selection-overlay {
+    @apply absolute inset-0 z-10 border-2 shadow-2xl rounded-[1rem] pointer-events-none;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--selection-accent) / 0.2) 0%,
+      hsl(var(--selection-accent) / 0.1) 50%,
+      transparent 100%
+    );
+    border-color: hsl(var(--selection-accent) / 0.4);
+  }
+
+  .selection-list-bg {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--selection-accent) / 0.1) 0%,
+      hsl(var(--selection-accent) / 0.05) 50%,
+      transparent 100%
+    );
+    @apply border-2 shadow-xl transform scale-[0.98];
+    border-color: hsl(var(--selection-accent) / 0.3);
+    box-shadow: 0 25px 50px -12px hsl(var(--selection-accent) / 0.1);
+  }
+
+  .selection-list-glow {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--selection-accent) / 0.08) 0%,
+      transparent 100%
+    );
+  }
+
+  .selection-mode-card {
+    @apply relative;
+  }
+
+  .selection-mode-card::before {
+    content: "";
+    @apply absolute inset-0 transition-opacity duration-200 opacity-0 pointer-events-none rounded-xl;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--selection-accent) / 0.1) 0%,
+      transparent 50%
+    );
+  }
+
+  .selection-mode-card:hover::before {
+    @apply opacity-100;
   }
 }
 

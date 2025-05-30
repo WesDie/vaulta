@@ -9,9 +9,16 @@ import { mediaApi } from "@/services/api";
 interface MediaCardProps {
   media: MediaFile;
   onSelect?: (media: MediaFile) => void;
+  selectionMode?: boolean;
+  onToggleSelection?: (mediaId: string) => void;
 }
 
-export function MediaCard({ media, onSelect }: MediaCardProps) {
+export function MediaCard({
+  media,
+  onSelect,
+  selectionMode,
+  onToggleSelection,
+}: MediaCardProps) {
   const [imageError, setImageError] = useState(false);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -64,7 +71,18 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
     // Removed mouse tracking transform as requested
   }, []);
 
+  const handleClick = () => {
+    if (selectionMode && onToggleSelection) {
+      onToggleSelection(media.id);
+    } else if (onSelect) {
+      onSelect(media);
+    }
+  };
+
   const handleMouseEnter = () => {
+    // Skip hover animations in selection mode
+    if (selectionMode) return;
+
     // GSAP animation for image - faster duration
     if (imageRef.current) {
       gsap.to(imageRef.current, {
@@ -104,6 +122,9 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
   };
 
   const handleMouseLeave = () => {
+    // Skip hover animations in selection mode
+    if (selectionMode) return;
+
     // GSAP animation to reset image - instant/very fast
     if (imageRef.current) {
       gsap.to(imageRef.current, {
@@ -148,14 +169,16 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
   return (
     <div
       ref={cardRef}
-      className="relative overflow-hidden transition-opacity cursor-pointer group bg-black/5 hover:opacity-90"
-      onClick={() => onSelect?.(media)}
+      className={`relative overflow-hidden transition-all duration-300 cursor-pointer group rounded-xl ${
+        selectionMode ? "selection-mode-card" : ""
+      }`}
+      onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* Media Preview */}
-      <div className="relative w-full overflow-hidden aspect-square">
+      <div className="relative w-full overflow-hidden aspect-square rounded-xl">
         {(isImage || thumbnailUrl) && !imageError ? (
           <>
             <Image
@@ -164,7 +187,9 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
               }
               alt={media.filename}
               fill
-              className="object-cover"
+              className={`object-cover transition-transform duration-300 ${
+                selectionMode ? "" : "group-hover:scale-105"
+              }`}
               onError={() => setImageError(true)}
               onLoad={() => setImageLoading(false)}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -173,16 +198,16 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
               ref={imageRef}
             />
             {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <div className="w-4 h-4 border-2 border-gray-300 rounded-full border-t-gray-600 animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <div className="w-4 h-4 loading-spinner"></div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center w-full h-full bg-gray-100">
+          <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-br from-muted/50 to-muted">
             {isVideo ? (
               <div className="text-center">
-                <div className="w-8 h-8 mx-auto mb-2 text-gray-400">
+                <div className="w-8 h-8 mx-auto mb-2 text-muted-foreground">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -191,11 +216,13 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>
-                <p className="text-xs text-gray-600">Video</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Video
+                </p>
               </div>
             ) : isImage ? (
               <div className="text-center">
-                <div className="w-8 h-8 mx-auto mb-2 text-gray-400">
+                <div className="w-8 h-8 mx-auto mb-2 text-muted-foreground">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -210,18 +237,18 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
                       e.stopPropagation();
                       handleGenerateThumbnail();
                     }}
-                    className="px-2 py-1 text-xs text-gray-600 bg-white rounded hover:bg-gray-50"
+                    className="text-xs btn btn-secondary"
                   >
                     Generate
                   </button>
                 )}
                 {thumbnailLoading && (
-                  <div className="w-4 h-4 mx-auto border-2 border-gray-300 rounded-full border-t-gray-600 animate-spin"></div>
+                  <div className="w-4 h-4 mx-auto loading-spinner"></div>
                 )}
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-8 h-8 mx-auto mb-2 text-gray-400">
+                <div className="w-8 h-8 mx-auto mb-2 text-muted-foreground">
                   <svg
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -230,33 +257,35 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                   </svg>
                 </div>
-                <p className="text-xs text-gray-600">File</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  File
+                </p>
               </div>
             )}
           </div>
         )}
 
         {/* Hover Info Overlay */}
-        {cardWidth >= 115 && (
+        {!selectionMode && cardWidth >= 115 && (
           <div
             ref={overlayRef}
-            className="absolute inset-0 flex items-end justify-start p-3 bg-black/60"
+            className="absolute inset-0 flex items-end justify-start p-3 bg-gradient-to-t from-black/80 via-black/50 to-transparent rounded-xl"
             style={{ display: "none" }}
           >
             <div ref={infoRef} className="space-y-1 text-sm text-white">
-              <div className="font-medium">
+              <div className="font-semibold text-white/95">
                 {getFileExtension(media.filename)}
               </div>
-              <div className="text-xs opacity-90">
+              <div className="text-xs text-white/80">
                 {formatFileSize(media.fileSize)}
               </div>
               {media.width && media.height && (
-                <div className="text-xs opacity-90">
+                <div className="text-xs text-white/80">
                   {media.width} × {media.height}
                 </div>
               )}
               {media.createdAt && (
-                <div className="text-xs opacity-90">
+                <div className="text-xs text-white/80">
                   {formatDate(media.createdAt)}
                 </div>
               )}
@@ -264,10 +293,10 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
           </div>
         )}
 
-        {/* Video indicator - minimal */}
+        {/* Video indicator */}
         {isVideo && !imageError && (
-          <div className="absolute top-1 left-1">
-            <div className="p-1 rounded bg-black/50">
+          <div className="absolute top-2 left-2">
+            <div className="p-1.5 rounded-lg bg-black/70">
               <svg
                 className="w-3 h-3 text-white"
                 fill="currentColor"
@@ -279,10 +308,10 @@ export function MediaCard({ media, onSelect }: MediaCardProps) {
           </div>
         )}
 
-        {/* Tags indicator - minimal */}
+        {/* Tags indicator */}
         {media.tags && media.tags.length > 0 && (
-          <div className="absolute top-1 right-1">
-            <div className="px-1 py-0.5 text-xs text-white bg-black/50 rounded">
+          <div className="absolute top-2 right-2">
+            <div className="px-2 py-1 text-xs font-medium text-white rounded-lg bg-black/70">
               {media.tags.length}
             </div>
           </div>
