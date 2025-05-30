@@ -151,7 +151,11 @@ export function MediaViewer({
                 width={media.width || 800}
                 height={media.height || 600}
                 className={`
-                  ${loadState.showFullImageFirst ? "" : "absolute inset-0"} 
+                  ${
+                    loadState.showFullImageFirst
+                      ? ""
+                      : "absolute my-auto inset-0"
+                  } 
                   object-contain max-w-full max-h-[100vh] select-none 
                   transition-opacity duration-500
                   ${loadState.fullImageRendered ? "opacity-100" : "opacity-0"}
