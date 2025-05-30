@@ -73,6 +73,6 @@ export interface MediaQuery {
   collections?: string[];
   mimeType?: string;
   search?: string;
-  sortBy?: "createdAt" | "filename" | "fileSize" | "dateTaken";
+  sortBy?: "createdAt" | "updatedAt" | "filename" | "fileSize" | "dateTaken";
   sortOrder?: "asc" | "desc";
 }

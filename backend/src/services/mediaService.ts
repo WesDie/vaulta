@@ -20,7 +20,7 @@ export class MediaService {
       collections,
       mimeType,
       search,
-      sortBy = "createdAt",
+      sortBy = "dateTaken",
       sortOrder = "desc",
     } = query;
     const offset = (page - 1) * limit;
@@ -69,31 +69,37 @@ export class MediaService {
 
     // Map camelCase field names to database column names
     const sortFieldMap: { [key: string]: string } = {
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-      fileName: "filename",
-      fileSize: "file_size",
-      mimeType: "mime_type",
+      createdAt: "m.created_at",
+      updatedAt: "m.updated_at",
+      fileName: "m.filename",
+      fileSize: "m.file_size",
+      mimeType: "m.mime_type",
+      dateTaken: "COALESCE(e.date_taken, m.created_at)", // Use image date if available, fallback to upload date
     };
-    const dbSortField = sortFieldMap[sortBy] || sortBy;
-    const orderClause = `ORDER BY m.${dbSortField} ${sortOrder.toUpperCase()}`;
+    const dbSortField = sortFieldMap[sortBy] || `m.${sortBy}`;
+
+    // Always join with exif_data table to get date_taken for proper date display
+    const exifJoin = "LEFT JOIN exif_data e ON m.id = e.media_file_id";
+
+    const orderClause = `ORDER BY ${dbSortField} ${sortOrder.toUpperCase()}`;
 
     // Get total count
     const countQuery = `
       SELECT COUNT(DISTINCT m.id) as total
       FROM media_files m
+      ${exifJoin}
       ${whereClause}
     `;
     const countResult = await db.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total);
 
-    // Optimized query - only get essential fields for gallery view
-    // EXIF data is loaded separately when needed (in modal)
+    // Always include date_taken in the query so the frontend can prioritize photo date
     const dataQuery = `
       SELECT m.id, m.filename, m.original_path, m.thumbnail_path, 
              m.file_size, m.mime_type, m.width, m.height, 
-             m.created_at, m.updated_at
+             m.created_at, m.updated_at, e.date_taken
       FROM media_files m
+      ${exifJoin}
       ${whereClause}
       ${orderClause}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -1041,6 +1047,22 @@ export class MediaService {
         ? Array(tagCount).fill({ id: "", name: "tag", color: "" })
         : [];
 
+    // Include minimal EXIF data with at least dateTaken for proper date display
+    const exifData: ExifData | undefined = row.date_taken
+      ? {
+          dateTaken: row.date_taken,
+          // Other fields are undefined/null for light version
+          camera: undefined,
+          lens: undefined,
+          focalLength: undefined,
+          aperture: undefined,
+          shutterSpeed: undefined,
+          iso: undefined,
+          gps: undefined,
+          rawExifData: undefined,
+        }
+      : undefined;
+
     return {
       id: row.id,
       filename: row.filename,
@@ -1052,9 +1074,9 @@ export class MediaService {
       height: row.height,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      exifData, // Include minimal EXIF data with dateTaken
       tags, // Simplified tags for gallery view
       collections: [], // Empty for gallery view
-      // No EXIF data for gallery view - loaded separately when needed
     };
   }
 }
