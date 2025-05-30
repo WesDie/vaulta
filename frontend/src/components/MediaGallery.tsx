@@ -323,18 +323,11 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
       const threshold = 200;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-      // Throttled debug logging (every 500ms)
-      const now = Date.now();
-      if (now - lastScrollLogRef.current > 500) {
-        lastScrollLogRef.current = now;
-      }
-
       if (
         distanceFromBottom < threshold &&
         hasNextPage &&
         !isFetchingNextPage
       ) {
-        console.log("Triggering load more...");
         handleLoadMore();
       }
     },
@@ -434,8 +427,30 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
               </button>
             )}
           </div>
-          <div className="px-3 py-1 font-mono text-xs rounded-lg text-muted-foreground bg-muted">
-            {viewMode.type.toUpperCase()} • {viewMode.size.toUpperCase()}
+          <div className="flex items-center space-x-3">
+            <div className="px-3 py-1 font-mono text-xs rounded-lg text-muted-foreground bg-muted">
+              {(() => {
+                const sortLabels: Record<
+                  string,
+                  { label: string; icon: string }
+                > = {
+                  dateTaken: { label: "Photo Date", icon: "📷" },
+                  createdAt: { label: "Upload Date", icon: "📤" },
+                  filename: { label: "Name", icon: "📄" },
+                  fileSize: { label: "Size", icon: "💾" },
+                };
+                const currentSort = sortLabels[filters.sortBy] || {
+                  label: filters.sortBy,
+                  icon: "📋",
+                };
+                return `${currentSort.icon} ${currentSort.label} ${
+                  filters.sortOrder === "desc" ? "↓" : "↑"
+                }`;
+              })()}
+            </div>
+            <div className="px-3 py-1 font-mono text-xs rounded-lg text-muted-foreground bg-muted">
+              {viewMode.type.toUpperCase()} • {viewMode.size.toUpperCase()}
+            </div>
           </div>
         </div>
       )}

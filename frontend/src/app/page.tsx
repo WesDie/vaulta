@@ -11,7 +11,7 @@ const initialFilters: FilterState = {
   selectedTags: [],
   selectedCollections: [],
   mimeType: "",
-  sortBy: "createdAt",
+  sortBy: "dateTaken",
   sortOrder: "desc",
 };
 

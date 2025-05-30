@@ -75,7 +75,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
                   : "text-muted-foreground"
               }`}
             >
-              Newest
+              ↓
             </button>
             <button
               onClick={() => onFiltersChange({ sortOrder: "asc" })}
@@ -85,8 +85,39 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
                   : "text-muted-foreground"
               }`}
             >
-              Oldest
+              ↑
             </button>
+          </div>
+        </div>
+
+        {/* Sort By */}
+        <div className="mb-8">
+          <h3 className="mb-4 text-xs font-medium tracking-wider uppercase text-muted-foreground">
+            Sort By
+          </h3>
+          <div className="space-y-2">
+            {[
+              { key: "dateTaken", label: "Photo Date", icon: "📷" },
+              { key: "createdAt", label: "Upload Date", icon: "📤" },
+              { key: "filename", label: "File Name", icon: "📄" },
+              { key: "fileSize", label: "File Size", icon: "💾" },
+            ].map((option) => (
+              <button
+                key={option.key}
+                onClick={() => onFiltersChange({ sortBy: option.key as any })}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center space-x-3 ${
+                  filters.sortBy === option.key
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <span className="text-base">{option.icon}</span>
+                <span>{option.label}</span>
+                {option.key === "dateTaken" && (
+                  <span className="ml-auto text-xs opacity-70">EXIF</span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -175,7 +206,7 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
                 selectedTags: [],
                 selectedCollections: [],
                 mimeType: "",
-                sortBy: "createdAt",
+                sortBy: "dateTaken",
                 sortOrder: "desc",
               })
             }

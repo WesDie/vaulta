@@ -66,7 +66,7 @@ export interface MediaQuery {
   collections?: string[];
   mimeType?: string;
   search?: string;
-  sortBy?: "createdAt" | "filename" | "fileSize" | "dateTaken";
+  sortBy?: "createdAt" | "updatedAt" | "filename" | "fileSize" | "dateTaken";
   sortOrder?: "asc" | "desc";
 }
 
@@ -80,8 +80,8 @@ export interface FilterState {
   selectedTags: string[];
   selectedCollections: string[];
   mimeType: string;
-  sortBy: MediaQuery["sortBy"];
-  sortOrder: MediaQuery["sortOrder"];
+  sortBy: "createdAt" | "updatedAt" | "filename" | "fileSize" | "dateTaken";
+  sortOrder: "asc" | "desc";
 }
 
 export interface StorageInfo {

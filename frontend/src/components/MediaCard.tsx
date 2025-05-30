@@ -159,6 +159,24 @@ export function MediaCard({
     });
   };
 
+  const getDisplayDate = () => {
+    // Prefer photo date (EXIF) over upload date
+    if (media.exifData?.dateTaken) {
+      return {
+        date: formatDate(media.exifData.dateTaken),
+        label: "📷", // Camera icon for photo date
+        isPhotoDate: true,
+      };
+    }
+    return {
+      date: formatDate(media.createdAt),
+      label: "📤", // Upload icon for upload date
+      isPhotoDate: false,
+    };
+  };
+
+  const displayDate = getDisplayDate();
+
   const getFileExtension = (filename: string): string => {
     return filename.split(".").pop()?.toUpperCase() || "FILE";
   };
@@ -283,10 +301,10 @@ export function MediaCard({
                   {media.width} × {media.height}
                 </div>
               )}
-              {media.createdAt && (
-                <div className="text-xs text-white/80">
-                  {formatDate(media.createdAt)}
-                </div>
+              {displayDate.isPhotoDate ? (
+                <div className="text-xs text-white/80">{displayDate.date}</div>
+              ) : (
+                <div className="text-xs text-white/80">{displayDate.date}</div>
               )}
             </div>
           </div>
