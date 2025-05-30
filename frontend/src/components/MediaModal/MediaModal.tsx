@@ -29,6 +29,7 @@ export function MediaModal({
   const [loadingFullData, setLoadingFullData] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use full media data if available, otherwise fall back to the passed media
   const currentMedia = fullMediaData || media;
@@ -124,17 +125,31 @@ export function MediaModal({
 
   // Enhanced navigation that resets transform and shows immediate feedback
   const handleNavigation = (direction: "previous" | "next") => {
+    // Cancel any pending navigation timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+
     // Reset zoom/pan immediately for better UX
     if (resetTransform) {
       resetTransform();
     }
 
-    // Call the navigation handler
+    // Clear current media data to force fresh loading
+    setFullMediaData(null);
+    setLoadingFullData(true);
+
+    // Immediately call the navigation handler
     if (direction === "previous" && onPrevious) {
       onPrevious();
     } else if (direction === "next" && onNext) {
       onNext();
     }
+
+    // Set a small timeout to reset loading state if navigation is very quick
+    navigationTimeoutRef.current = setTimeout(() => {
+      setLoadingFullData(false);
+    }, 100);
   };
 
   useEffect(() => {
@@ -146,6 +161,10 @@ export function MediaModal({
 
     return () => {
       document.body.style.overflow = "unset";
+      // Clean up navigation timeout
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
     };
   }, [isOpen, currentMedia?.id]);
 
@@ -246,21 +265,22 @@ export function MediaModal({
         onDelete={onDelete ? handleDeleteClick : undefined}
       />
 
-      {/* Main content */}
+      {/* Main content - now full screen */}
       <div
         ref={modalRef}
         className={`
-          relative z-10 flex max-h-[95vh] max-w-[95vw] overflow-hidden rounded-2xl border border-border
+          relative z-10 flex h-full w-full overflow-hidden
           ${showMetadata ? "lg:flex-row" : "flex-col"}
         `}
       >
-        {/* Media viewer */}
+        {/* Media viewer - takes full available space */}
         <div
           className={`
-            flex-1
+            flex-1 h-full w-full
           `}
         >
           <MediaViewer
+            key={currentMedia?.id || "no-media"}
             media={currentMedia}
             onHeightChange={setImageContainerHeight}
             onResetTransform={handleResetTransform}

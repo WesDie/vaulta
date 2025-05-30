@@ -34,6 +34,9 @@ export function useProgressiveImageLoad({
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const fullImageRef = useRef<HTMLImageElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentMediaIdRef = useRef<string>("");
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cache for loaded images
   const imageCache = useRef<Map<string, boolean>>(new Map());
@@ -49,26 +52,59 @@ export function useProgressiveImageLoad({
     });
   }, []);
 
-  // Track when full image is rendered
-  const handleFullImageRender = useCallback(() => {
-    setLoadState((prev) => ({
-      ...prev,
-      fullImageRendered: true,
-    }));
+  // Clear any ongoing timeouts and intervals
+  const clearLoadingProcesses = useCallback(() => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
   }, []);
 
-  // Create image element and handle loading
+  // Track when full image is rendered
+  const handleFullImageRender = useCallback(() => {
+    // Only update if this is still the current media
+    if (currentMediaIdRef.current === mediaId) {
+      setLoadState((prev) => ({
+        ...prev,
+        fullImageRendered: true,
+      }));
+    }
+  }, [mediaId]);
+
+  // Create image element and handle loading with abort support
   const loadImage = useCallback(
-    (url: string, isFullImage: boolean = false): Promise<HTMLImageElement> => {
+    (
+      url: string,
+      isFullImage: boolean = false,
+      targetMediaId: string
+    ): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
+        // Check if we should still be loading this image
+        if (currentMediaIdRef.current !== targetMediaId) {
+          reject(new Error("Navigation aborted"));
+          return;
+        }
+
         const img = new Image();
 
         if (isFullImage) {
           // Simulate loading progress for full images
-          const progressInterval = setInterval(() => {
+          progressIntervalRef.current = setInterval(() => {
+            // Check if we should still be loading this image
+            if (currentMediaIdRef.current !== targetMediaId) {
+              clearInterval(progressIntervalRef.current!);
+              reject(new Error("Navigation aborted"));
+              return;
+            }
+
             setLoadState((prev) => {
               if (prev.fullImageLoaded || prev.loadingProgress >= 90) {
-                clearInterval(progressInterval);
+                clearInterval(progressIntervalRef.current!);
+                progressIntervalRef.current = null;
                 return prev;
               }
               return {
@@ -82,7 +118,16 @@ export function useProgressiveImageLoad({
           }, 100);
 
           img.onload = () => {
-            clearInterval(progressInterval);
+            // Check if this is still the current media
+            if (currentMediaIdRef.current !== targetMediaId) {
+              clearInterval(progressIntervalRef.current!);
+              progressIntervalRef.current = null;
+              reject(new Error("Navigation aborted"));
+              return;
+            }
+
+            clearInterval(progressIntervalRef.current!);
+            progressIntervalRef.current = null;
             setLoadState((prev) => ({
               ...prev,
               fullImageLoaded: true,
@@ -93,16 +138,27 @@ export function useProgressiveImageLoad({
           };
 
           img.onerror = () => {
-            clearInterval(progressInterval);
-            setLoadState((prev) => ({
-              ...prev,
-              error: true,
-              loadingProgress: 0,
-            }));
+            clearInterval(progressIntervalRef.current!);
+            progressIntervalRef.current = null;
+
+            // Only set error if this is still the current media
+            if (currentMediaIdRef.current === targetMediaId) {
+              setLoadState((prev) => ({
+                ...prev,
+                error: true,
+                loadingProgress: 0,
+              }));
+            }
             reject(new Error(`Failed to load image: ${url}`));
           };
         } else {
           img.onload = () => {
+            // Check if this is still the current media
+            if (currentMediaIdRef.current !== targetMediaId) {
+              reject(new Error("Navigation aborted"));
+              return;
+            }
+
             setLoadState((prev) => ({
               ...prev,
               thumbnailLoaded: true,
@@ -113,10 +169,13 @@ export function useProgressiveImageLoad({
           };
 
           img.onerror = () => {
-            setLoadState((prev) => ({
-              ...prev,
-              error: true,
-            }));
+            // Only set error if this is still the current media
+            if (currentMediaIdRef.current === targetMediaId) {
+              setLoadState((prev) => ({
+                ...prev,
+                error: true,
+              }));
+            }
             reject(new Error(`Failed to load thumbnail: ${url}`));
           };
         }
@@ -133,49 +192,73 @@ export function useProgressiveImageLoad({
     []
   );
 
-  // Load images progressively
+  // Load images progressively with enhanced abort handling
   useEffect(() => {
+    // Update current media ID reference
+    currentMediaIdRef.current = mediaId;
+
     // Abort any ongoing requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+
+    // Clear any ongoing loading processes
+    clearLoadingProcesses();
 
     abortControllerRef.current = new AbortController();
     resetLoadState();
 
     const loadImagesSequentially = async () => {
       try {
+        // Double-check we're still on the same media
+        if (currentMediaIdRef.current !== mediaId) {
+          return;
+        }
+
         // Check cache first
         const thumbnailCached = imageCache.current.get(thumbnailUrl);
         const fullImageCached = imageCache.current.get(fullImageUrl);
 
         // If full image is cached, skip thumbnail and show full image directly
         if (fullImageCached) {
-          setLoadState((prev) => ({
-            ...prev,
-            showFullImageFirst: true,
-            fullImageLoaded: true,
-            fullImageRendered: true,
-            loadingProgress: 100,
-          }));
+          // Only update if we're still on the same media
+          if (currentMediaIdRef.current === mediaId) {
+            setLoadState((prev) => ({
+              ...prev,
+              showFullImageFirst: true,
+              fullImageLoaded: true,
+              fullImageRendered: true,
+              loadingProgress: 100,
+            }));
+          }
           return;
         }
 
         // Load thumbnail first (only if full image is not cached)
         if (thumbnailCached) {
-          setLoadState((prev) => ({
-            ...prev,
-            thumbnailLoaded: true,
-            loadingProgress: 25,
-          }));
+          if (currentMediaIdRef.current === mediaId) {
+            setLoadState((prev) => ({
+              ...prev,
+              thumbnailLoaded: true,
+              loadingProgress: 25,
+            }));
+          }
         } else {
-          await loadImage(thumbnailUrl, false);
+          await loadImage(thumbnailUrl, false, mediaId);
+        }
+
+        // Check again before loading full image
+        if (currentMediaIdRef.current !== mediaId) {
+          return;
         }
 
         // Then load full resolution image
-        await loadImage(fullImageUrl, true);
+        await loadImage(fullImageUrl, true, mediaId);
       } catch (error) {
-        console.error("Error loading images:", error);
+        // Only log errors for current media to avoid spam from aborted requests
+        if (currentMediaIdRef.current === mediaId) {
+          console.error("Error loading images:", error);
+        }
       }
     };
 
@@ -185,8 +268,16 @@ export function useProgressiveImageLoad({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      clearLoadingProcesses();
     };
-  }, [mediaId, thumbnailUrl, fullImageUrl, loadImage, resetLoadState]);
+  }, [
+    mediaId,
+    thumbnailUrl,
+    fullImageUrl,
+    loadImage,
+    resetLoadState,
+    clearLoadingProcesses,
+  ]);
 
   // Preload next/previous images
   const preloadImage = useCallback((url: string) => {

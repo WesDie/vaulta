@@ -102,17 +102,16 @@ export function MediaViewer({
     <div
       ref={containerRef}
       className={`
-        relative flex items-center justify-center flex-1 overflow-hidden
+        relative flex items-center justify-center flex-1 overflow-hidden h-full w-full
         ${isImage && transform.scale > 1 ? "cursor-grab" : "cursor-default"}
         ${isDragging ? "cursor-grabbing" : ""}
       `}
-      style={{ minHeight: "60vh" }}
     >
       {isImage && (
         <>
           {/* Image container */}
           <div
-            className="relative flex items-center justify-center max-w-full max-h-full"
+            className="relative flex items-center justify-center h-full max-w-full max-h-full"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -135,7 +134,7 @@ export function MediaViewer({
                 width={media.width || 800}
                 height={media.height || 600}
                 className={`
-                  object-contain max-w-full max-h-[80vh] select-none
+                  object-contain max-w-full max-h-[100vh] select-none
                   transition-opacity duration-300
                   ${loadState.fullImageRendered ? "opacity-0" : "opacity-100"}
                 `}
@@ -153,7 +152,7 @@ export function MediaViewer({
                 height={media.height || 600}
                 className={`
                   ${loadState.showFullImageFirst ? "" : "absolute inset-0"} 
-                  object-contain max-w-full max-h-[80vh] select-none 
+                  object-contain max-w-full max-h-[100vh] select-none 
                   transition-opacity duration-500
                   ${loadState.fullImageRendered ? "opacity-100" : "opacity-0"}
                 `}
@@ -198,14 +197,14 @@ export function MediaViewer({
             loadState.thumbnailLoaded &&
             !loadState.fullImageRendered &&
             !loadState.error && (
-              <div className="absolute z-20 flex items-center px-3 py-2 text-xs border rounded-lg top-4 left-4 bg-background/80 backdrop-blur-sm border-border">
+              <div className="absolute z-20 flex items-center px-3 py-2 text-xs border rounded-lg bottom-4 right-4 bg-background/80 backdrop-blur-sm border-border">
                 <div className="w-2 h-2 mr-2 bg-yellow-500 rounded-full" />
                 Preview Quality
               </div>
             )}
 
           {loadState.fullImageRendered && (
-            <div className="absolute z-20 flex items-center px-3 py-2 text-xs border rounded-lg top-4 left-4 bg-background/80 backdrop-blur-sm border-border">
+            <div className="absolute z-20 flex items-center px-3 py-2 text-xs border rounded-lg bottom-4 right-4 bg-background/80 backdrop-blur-sm border-border">
               <div className="w-2 h-2 mr-2 bg-green-500 rounded-full" />
               Full Quality
             </div>
@@ -217,7 +216,7 @@ export function MediaViewer({
         <video
           src={fullImageUrl}
           controls
-          className="max-w-full max-h-[80vh] rounded-none"
+          className="max-w-full max-h-[100vh] rounded-none"
           onLoadedData={() => {
             // Update height after video loads
             setTimeout(() => {
