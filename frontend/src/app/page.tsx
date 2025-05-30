@@ -1,33 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MediaGallery } from "@/components/MediaGallery";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { FilterState, ViewMode } from "@/types";
-
-const initialFilters: FilterState = {
-  search: "",
-  selectedTags: [],
-  selectedCollections: [],
-  mimeType: "",
-  sortBy: "dateTaken",
-  sortOrder: "desc",
-};
-
-const initialViewMode: ViewMode = {
-  type: "grid",
-  size: "medium",
-};
+import {
+  DEFAULT_FILTERS,
+  DEFAULT_VIEW_MODE,
+  loadAppState,
+  saveFilters,
+  saveViewMode,
+  saveSidebarOpen,
+} from "@/utils/localStorage";
 
 export default function HomePage() {
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
-  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [viewMode, setViewMode] = useState<ViewMode>(DEFAULT_VIEW_MODE);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Initialize state from localStorage on client-side
+  useEffect(() => {
+    const appState = loadAppState();
+    setFilters(appState.filters);
+    setViewMode(appState.viewMode);
+    setSidebarOpen(appState.sidebarOpen);
+    setIsLoaded(true);
+  }, []);
+
+  // Save filters to localStorage whenever they change
+  useEffect(() => {
+    if (isLoaded) {
+      saveFilters(filters);
+    }
+  }, [filters, isLoaded]);
+
+  // Save viewMode to localStorage whenever it changes
+  useEffect(() => {
+    if (isLoaded) {
+      saveViewMode(viewMode);
+    }
+  }, [viewMode, isLoaded]);
+
+  // Save sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    if (isLoaded) {
+      saveSidebarOpen(sidebarOpen);
+    }
+  }, [sidebarOpen, isLoaded]);
 
   const updateFilters = (newFilters: Partial<FilterState>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
   };
+
+  // Show loading state to prevent flash of initial content
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex items-center space-x-2 text-muted-foreground">
+          <div className="w-4 h-4 border-2 border-current rounded-full border-t-transparent animate-spin"></div>
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex max-h-screen min-h-screen bg-background">
