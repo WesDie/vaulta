@@ -13,7 +13,39 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     "/media",
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const query = request.query as MediaQuery;
+        const rawQuery = request.query as any;
+
+        // Parse the query properly - handle array parameters
+        const query: MediaQuery = {
+          ...rawQuery,
+          page: rawQuery.page ? parseInt(rawQuery.page) : undefined,
+          limit: rawQuery.limit ? parseInt(rawQuery.limit) : undefined,
+          tags: Array.isArray(rawQuery.tags)
+            ? rawQuery.tags
+            : rawQuery.tags
+            ? [rawQuery.tags]
+            : undefined,
+          collections: Array.isArray(rawQuery.collections)
+            ? rawQuery.collections
+            : rawQuery.collections
+            ? [rawQuery.collections]
+            : undefined,
+          focalLengthMin: rawQuery.focalLengthMin
+            ? parseFloat(rawQuery.focalLengthMin)
+            : undefined,
+          focalLengthMax: rawQuery.focalLengthMax
+            ? parseFloat(rawQuery.focalLengthMax)
+            : undefined,
+          apertureMin: rawQuery.apertureMin
+            ? parseFloat(rawQuery.apertureMin)
+            : undefined,
+          apertureMax: rawQuery.apertureMax
+            ? parseFloat(rawQuery.apertureMax)
+            : undefined,
+          isoMin: rawQuery.isoMin ? parseInt(rawQuery.isoMin) : undefined,
+          isoMax: rawQuery.isoMax ? parseInt(rawQuery.isoMax) : undefined,
+        };
+
         const result = await mediaService.getMediaFiles(query);
 
         reply.send({

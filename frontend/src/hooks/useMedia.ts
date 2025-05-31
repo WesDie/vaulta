@@ -8,27 +8,33 @@ import { mediaApi, tagsApi } from "@/services/api";
 import { MediaQuery, FilterState } from "@/types";
 
 // Convert FilterState to MediaQuery
-const filtersToQuery = (filters: FilterState): MediaQuery => ({
-  search: filters.search || undefined,
-  tags: filters.selectedTags.length > 0 ? filters.selectedTags : undefined,
-  collections:
-    filters.selectedCollections.length > 0
-      ? filters.selectedCollections
-      : undefined,
-  mimeType: filters.mimeType || undefined,
-  sortBy: filters.sortBy,
-  sortOrder: filters.sortOrder,
-  limit: 1000, // Increased limit for better infinite loading performance
-  // EXIF filters
-  camera: filters.camera || undefined,
-  lens: filters.lens || undefined,
-  focalLengthMin: filters.focalLengthMin || undefined,
-  focalLengthMax: filters.focalLengthMax || undefined,
-  apertureMin: filters.apertureMin || undefined,
-  apertureMax: filters.apertureMax || undefined,
-  isoMin: filters.isoMin || undefined,
-  isoMax: filters.isoMax || undefined,
-});
+const filtersToQuery = (filters: FilterState): MediaQuery => {
+  const query = {
+    search: filters.search || undefined,
+    tags: filters.selectedTags.length > 0 ? filters.selectedTags : undefined,
+    collections:
+      filters.selectedCollections.length > 0
+        ? filters.selectedCollections
+        : undefined,
+    mimeType: filters.mimeType || undefined,
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
+    limit: 1000, // Increased limit for better infinite loading performance
+    // EXIF filters
+    camera: filters.camera || undefined,
+    lens: filters.lens || undefined,
+    focalLengthMin: filters.focalLengthMin || undefined,
+    focalLengthMax: filters.focalLengthMax || undefined,
+    apertureMin: filters.apertureMin || undefined,
+    apertureMax: filters.apertureMax || undefined,
+    isoMin: filters.isoMin || undefined,
+    isoMax: filters.isoMax || undefined,
+  };
+
+  console.log(query);
+
+  return query;
+};
 
 export const useMediaFiles = (filters: FilterState) => {
   const query = filtersToQuery(filters);
@@ -60,8 +66,12 @@ export const useInfiniteMediaFiles = (filters: FilterState) => {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 3,
       refetchOnWindowFocus: false,
-      // Keep only last 5 pages in memory to prevent memory issues
-      keepPreviousData: true,
+      // Keep previous data only if not switching filters significantly
+      keepPreviousData: false, // Changed to false to ensure fresh data on filter changes
+      // Add onError for debugging
+      onError: (error) => {
+        console.error("Error fetching media files:", error);
+      },
     }
   );
 };

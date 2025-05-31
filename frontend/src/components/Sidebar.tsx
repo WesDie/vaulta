@@ -5,6 +5,8 @@ import { StorageInfo } from "./StorageInfo";
 import { useState, useEffect } from "react";
 import { useQuery } from "react-query";
 import { mediaApi } from "@/services/api";
+import { useTags } from "@/hooks/useMedia";
+import { Tag } from "./ui/Tag";
 
 interface SidebarProps {
   filters: FilterState;
@@ -215,6 +217,10 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
     }
   );
 
+  // Fetch actual tags from database
+  const tagsQuery = useTags();
+  const allTags = tagsQuery.data?.success ? tagsQuery.data.data : [];
+
   const quickFilters = [
     { name: "All", mimeType: "" },
     { name: "Images", mimeType: "image/" },
@@ -222,15 +228,6 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
     { name: "Documents", mimeType: "application/" },
   ];
 
-  const commonTags = [
-    "Landscape",
-    "Portrait",
-    "Nature",
-    "Urban",
-    "Travel",
-    "Work",
-    "Personal",
-  ];
   const collections = ["Favorites", "Recent", "Archive", "Shared"];
 
   const hasActiveFilters =
@@ -455,32 +452,158 @@ export function Sidebar({ filters, onFiltersChange }: SidebarProps) {
 
         {/* Tags */}
         <div>
-          <label className="block mb-3 text-xs font-medium text-muted-foreground">
-            Tags
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {commonTags.map((tag) => {
-              const isSelected = filters.selectedTags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  onClick={() => {
-                    const newTags = isSelected
-                      ? filters.selectedTags.filter((t) => t !== tag)
-                      : [...filters.selectedTags, tag];
-                    onFiltersChange({ selectedTags: newTags });
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-full border transition-all ${
-                    isSelected
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-input hover:border-accent hover:text-foreground"
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between mb-3 h-[20px]">
+            <label className="text-xs font-medium text-muted-foreground">
+              Tags
+            </label>
+            {filters.selectedTags.length > 0 && (
+              <button
+                onClick={() => onFiltersChange({ selectedTags: [] })}
+                className="px-2 py-0.5 text-xs bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded transition-colors"
+                title="Clear tag filters"
+              >
+                Clear ({filters.selectedTags.length})
+              </button>
+            )}
           </div>
+          {tagsQuery.isLoading ? (
+            <div className="flex items-center justify-center p-4 border border-dashed rounded-lg bg-muted/20 border-border/50">
+              <div className="text-center">
+                <div className="w-6 h-6 mx-auto mb-2 animate-spin">
+                  <svg
+                    className="w-full h-full text-muted-foreground/40"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </div>
+                <p className="text-xs text-muted-foreground">Loading tags...</p>
+              </div>
+            </div>
+          ) : allTags && allTags.length > 0 ? (
+            <div className="space-y-2">
+              {allTags.map((tag) => {
+                const isSelected = filters.selectedTags.includes(tag.name);
+                const rgb = tag.color
+                  ? {
+                      r: parseInt(tag.color.slice(1, 3), 16),
+                      g: parseInt(tag.color.slice(3, 5), 16),
+                      b: parseInt(tag.color.slice(5, 7), 16),
+                    }
+                  : { r: 99, g: 102, b: 241 }; // Default indigo color
+
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      const isCurrentlySelected = filters.selectedTags.includes(
+                        tag.name
+                      );
+                      const newTags = isCurrentlySelected
+                        ? filters.selectedTags.filter((t) => t !== tag.name)
+                        : [...filters.selectedTags, tag.name];
+                      onFiltersChange({ selectedTags: newTags });
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-between border group hover:shadow-sm ${
+                      isSelected
+                        ? "border-primary/30 shadow-sm"
+                        : "border-border hover:border-border/80"
+                    }`}
+                    style={{
+                      backgroundColor: isSelected
+                        ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08)`
+                        : "transparent",
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`w-3 h-3 rounded-full flex-shrink-0 transition-all ${
+                          isSelected ? "scale-110 shadow-sm" : "opacity-60"
+                        }`}
+                        style={{
+                          backgroundColor: tag.color || "#6366F1",
+                          boxShadow: isSelected
+                            ? `0 0 6px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`
+                            : `0 0 3px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`,
+                        }}
+                      />
+                      <span
+                        className={`font-medium truncate transition-colors ${
+                          isSelected
+                            ? "text-foreground"
+                            : "text-muted-foreground group-hover:text-foreground"
+                        }`}
+                        title={tag.name}
+                      >
+                        {tag.name}
+                      </span>
+                      {tag.mediaCount !== undefined && (
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded-full transition-colors ${
+                            isSelected
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground group-hover:bg-accent group-hover:text-accent-foreground"
+                          }`}
+                        >
+                          {tag.mediaCount}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={`flex-shrink-0 transition-all ${
+                        isSelected
+                          ? "opacity-100 scale-100"
+                          : "opacity-0 scale-95"
+                      }`}
+                    >
+                      <svg
+                        className="w-4 h-4 text-primary"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center p-4 border border-dashed rounded-lg bg-muted/20 border-border/50">
+              <div className="text-center">
+                <svg
+                  className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                  />
+                </svg>
+                <p className="text-xs text-muted-foreground">
+                  No tags available
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  Tags will appear here as you create them
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Collections */}

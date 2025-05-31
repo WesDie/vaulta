@@ -59,22 +59,28 @@ export class MediaService {
 
     if (tags && tags.length > 0) {
       whereConditions.push(`m.id IN (
-        SELECT mt.media_file_id FROM media_tags mt 
+        SELECT mt.media_file_id 
+        FROM media_tags mt 
         JOIN tags t ON mt.tag_id = t.id 
         WHERE t.name = ANY($${paramIndex})
+        GROUP BY mt.media_file_id
+        HAVING COUNT(DISTINCT t.name) = $${paramIndex + 1}
       )`);
-      queryParams.push(tags);
-      paramIndex++;
+      queryParams.push(tags, tags.length);
+      paramIndex += 2;
     }
 
     if (collections && collections.length > 0) {
       whereConditions.push(`m.id IN (
-        SELECT mc.media_file_id FROM media_collections mc 
+        SELECT mc.media_file_id 
+        FROM media_collections mc 
         JOIN collections c ON mc.collection_id = c.id 
         WHERE c.name = ANY($${paramIndex})
+        GROUP BY mc.media_file_id
+        HAVING COUNT(DISTINCT c.name) = $${paramIndex + 1}
       )`);
-      queryParams.push(collections);
-      paramIndex++;
+      queryParams.push(collections, collections.length);
+      paramIndex += 2;
     }
 
     // EXIF filters
