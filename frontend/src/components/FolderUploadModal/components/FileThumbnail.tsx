@@ -116,32 +116,81 @@ export function FileThumbnail({ file, className = "" }: FileThumbnailProps) {
       }
 
       img.onload = () => {
-        // Generate small thumbnail (64x64 max for 32x32 display with 2x pixel density)
-        const maxSize = 64;
-        const ratio = Math.min(maxSize / img.width, maxSize / img.height);
-        canvas.width = Math.floor(img.width * ratio);
-        canvas.height = Math.floor(img.height * ratio);
+        // Read EXIF orientation
+        getImageOrientation(imageFile)
+          .then((orientation) => {
+            // Generate small thumbnail (64x64 max for 32x32 display with 2x pixel density)
+            const maxSize = 64;
 
-        // Use better quality settings
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              resolve(url);
-            } else {
-              reject(new Error("Failed to create blob from canvas"));
+            // Calculate dimensions considering orientation
+            let { width, height } = img;
+            if (orientation >= 5 && orientation <= 8) {
+              // For orientations 5-8, width and height are swapped
+              [width, height] = [height, width];
             }
-          },
-          "image/jpeg",
-          0.7 // Lower quality for smaller files
-        );
 
-        // Cleanup
-        URL.revokeObjectURL(img.src);
+            const ratio = Math.min(maxSize / width, maxSize / height);
+            const canvasWidth = Math.floor(width * ratio);
+            const canvasHeight = Math.floor(height * ratio);
+
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // Use better quality settings
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+
+            // Apply EXIF rotation
+            applyImageOrientation(
+              ctx,
+              img,
+              orientation,
+              canvasWidth,
+              canvasHeight
+            );
+
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  resolve(url);
+                } else {
+                  reject(new Error("Failed to create blob from canvas"));
+                }
+              },
+              "image/jpeg",
+              0.7 // Lower quality for smaller files
+            );
+
+            // Cleanup
+            URL.revokeObjectURL(img.src);
+          })
+          .catch((err) => {
+            // Fallback to original behavior if orientation reading fails
+            const maxSize = 64;
+            const ratio = Math.min(maxSize / img.width, maxSize / img.height);
+            canvas.width = Math.floor(img.width * ratio);
+            canvas.height = Math.floor(img.height * ratio);
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  resolve(url);
+                } else {
+                  reject(new Error("Failed to create blob from canvas"));
+                }
+              },
+              "image/jpeg",
+              0.7
+            );
+
+            URL.revokeObjectURL(img.src);
+          });
       };
 
       img.onerror = () => {
@@ -151,6 +200,106 @@ export function FileThumbnail({ file, className = "" }: FileThumbnailProps) {
 
       img.src = URL.createObjectURL(imageFile);
     });
+  };
+
+  // Helper function to read EXIF orientation
+  const getImageOrientation = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const view = new DataView(e.target?.result as ArrayBuffer);
+        if (view.getUint16(0, false) !== 0xffd8) {
+          resolve(1); // Not a JPEG, assume no rotation needed
+          return;
+        }
+
+        const length = view.byteLength;
+        let offset = 2;
+
+        while (offset < length) {
+          const marker = view.getUint16(offset, false);
+          offset += 2;
+
+          if (marker === 0xffe1) {
+            const little = view.getUint32(offset + 4, false) !== 0x4d4d002a;
+            const ifdOffset = view.getUint32(offset + 8, little) + offset + 6;
+
+            if (ifdOffset > view.byteLength) {
+              resolve(1);
+              return;
+            }
+
+            const tags = view.getUint16(ifdOffset, little);
+            for (let i = 0; i < tags; i++) {
+              const tagOffset = ifdOffset + i * 12 + 2;
+              if (view.getUint16(tagOffset, little) === 0x0112) {
+                resolve(view.getUint16(tagOffset + 8, little));
+                return;
+              }
+            }
+          }
+
+          offset += view.getUint16(offset, false);
+        }
+
+        resolve(1); // Default orientation
+      };
+
+      reader.onerror = () => resolve(1);
+      reader.readAsArrayBuffer(file.slice(0, 64 * 1024)); // Read first 64KB
+    });
+  };
+
+  // Helper function to apply EXIF orientation to canvas
+  const applyImageOrientation = (
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement,
+    orientation: number,
+    canvasWidth: number,
+    canvasHeight: number
+  ) => {
+    const { width: imgWidth, height: imgHeight } = img;
+
+    switch (orientation) {
+      case 2:
+        // Horizontal flip
+        ctx.transform(-1, 0, 0, 1, canvasWidth, 0);
+        break;
+      case 3:
+        // 180° rotation
+        ctx.transform(-1, 0, 0, -1, canvasWidth, canvasHeight);
+        break;
+      case 4:
+        // Vertical flip
+        ctx.transform(1, 0, 0, -1, 0, canvasHeight);
+        break;
+      case 5:
+        // 90° rotation + horizontal flip
+        ctx.transform(0, 1, 1, 0, 0, 0);
+        break;
+      case 6:
+        // 90° rotation
+        ctx.transform(0, 1, -1, 0, canvasHeight, 0);
+        break;
+      case 7:
+        // 270° rotation + horizontal flip
+        ctx.transform(0, -1, -1, 0, canvasHeight, canvasWidth);
+        break;
+      case 8:
+        // 270° rotation
+        ctx.transform(0, -1, 1, 0, 0, canvasWidth);
+        break;
+      default:
+        // No transformation needed
+        break;
+    }
+
+    // Draw the image
+    const ratio = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight);
+    const drawWidth = imgWidth * ratio;
+    const drawHeight = imgHeight * ratio;
+
+    ctx.drawImage(img, 0, 0, drawWidth, drawHeight);
   };
 
   const extractVideoFrame = (videoFile: File): Promise<string> => {
