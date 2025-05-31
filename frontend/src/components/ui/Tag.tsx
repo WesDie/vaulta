@@ -1,4 +1,6 @@
 import React from "react";
+import { useRef, useState } from "react";
+import { gsap } from "gsap";
 import { Tag as TagType } from "@/types";
 
 interface TagProps {
@@ -20,6 +22,10 @@ export function Tag({
   loading = false,
   className = "",
 }: TagProps) {
+  const [hoveredTag, setHoveredTag] = useState<string | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tagRef = useRef<HTMLDivElement>(null);
+
   const getContrastColor = (hexColor: string) => {
     // Convert hex to RGB
     const r = parseInt(hexColor.slice(1, 3), 16);
@@ -52,6 +58,56 @@ export function Tag({
 
   const modernStyles = getModernStyles();
 
+  const showTooltip = (event: React.MouseEvent) => {
+    if (!tooltipRef.current || !tagRef.current) return;
+
+    const tooltip = tooltipRef.current;
+    const tagElement = tagRef.current;
+    const rect = tagElement.getBoundingClientRect();
+
+    // Position tooltip below the tag, centered
+    const tooltipX = rect.left + rect.width / 2;
+    const tooltipY = rect.bottom - 130; // 8px gap below the tag
+
+    gsap.set(tooltip, {
+      position: "fixed",
+      left: tooltipX,
+      top: tooltipY,
+      xPercent: -50,
+      yPercent: 0,
+      opacity: 0,
+      scale: 0.8,
+      display: "block",
+      zIndex: 9999,
+    });
+
+    setHoveredTag(tag.name);
+
+    gsap.to(tooltip, {
+      opacity: 1,
+      scale: 1,
+      duration: 0.2,
+      ease: "back.out(1.7)",
+    });
+  };
+
+  const hideTooltip = () => {
+    if (!tooltipRef.current) return;
+
+    gsap.to(tooltipRef.current, {
+      opacity: 0,
+      scale: 0.8,
+      duration: 0.15,
+      ease: "power2.in",
+      onComplete: () => {
+        if (tooltipRef.current) {
+          gsap.set(tooltipRef.current, { display: "none" });
+        }
+        setHoveredTag(null);
+      },
+    });
+  };
+
   const handleClick = () => {
     if (onClick && !loading) {
       onClick(tag.id);
@@ -67,93 +123,122 @@ export function Tag({
 
   if (variant === "compact") {
     return (
+      <>
+        <div
+          ref={tagRef}
+          className={`group relative inline-flex items-center justify-center w-6 h-6 rounded-full border transition-all duration-200 hover:scale-110 hover:shadow-lg backdrop-blur-sm cursor-pointer ${className}`}
+          style={{
+            ...modernStyles,
+            color: textColor,
+          }}
+          onClick={handleClick}
+          onMouseEnter={showTooltip}
+          onMouseLeave={hideTooltip}
+        >
+          <div
+            className="w-2 h-2 rounded-full opacity-70"
+            style={{
+              backgroundColor: baseColor,
+              boxShadow: `0 0 4px rgba(${parseInt(
+                baseColor.slice(1, 3),
+                16
+              )}, ${parseInt(baseColor.slice(3, 5), 16)}, ${parseInt(
+                baseColor.slice(5, 7),
+                16
+              )}, 0.4)`,
+            }}
+          />
+
+          {removable && (
+            <button
+              onClick={handleRemove}
+              disabled={loading}
+              className="absolute flex items-center justify-center w-4 h-4 text-xs font-bold text-white transition-all duration-200 rounded-full shadow-lg opacity-0 bg-gradient-to-br from-red-500 to-red-600 -top-1 -right-1 group-hover:opacity-100 hover:from-red-600 hover:to-red-700 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Remove tag"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Animated Tooltip */}
+        <div
+          ref={tooltipRef}
+          className="px-2 py-1 text-xs font-medium text-white rounded-md pointer-events-none bg-black/90 backdrop-blur-sm whitespace-nowrap"
+          style={{ display: "none" }}
+        >
+          {hoveredTag}
+          <div className="absolute w-2 h-2 transform rotate-45 -translate-x-1/2 translate-y-1/2 bg-black/90 left-1/2 bottom-full"></div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
       <div
-        className={`group relative inline-flex items-center justify-center w-6 h-6 rounded-full border transition-all duration-200 hover:scale-110 hover:shadow-lg backdrop-blur-sm cursor-pointer ${className}`}
+        ref={tagRef}
+        className={`group flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border backdrop-blur-sm transition-all duration-200 ${
+          onClick
+            ? "cursor-pointer hover:scale-105 hover:shadow-lg hover:border-opacity-50"
+            : ""
+        } ${className}`}
         style={{
           ...modernStyles,
           color: textColor,
         }}
         onClick={handleClick}
-        title={tag.name}
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
       >
         <div
-          className="w-2 h-2 rounded-full opacity-70"
+          className="w-1.5 h-1.5 rounded-full opacity-70"
           style={{
             backgroundColor: baseColor,
-            boxShadow: `0 0 4px rgba(${parseInt(
+            boxShadow: `0 0 3px rgba(${parseInt(
               baseColor.slice(1, 3),
               16
             )}, ${parseInt(baseColor.slice(3, 5), 16)}, ${parseInt(
               baseColor.slice(5, 7),
               16
-            )}, 0.4)`,
+            )}, 0.5)`,
           }}
-        />
-
+        ></div>
+        <span className="font-medium text-foreground">{tag.name}</span>
         {removable && (
           <button
             onClick={handleRemove}
             disabled={loading}
-            className="absolute flex items-center justify-center w-4 h-4 text-xs font-bold text-white transition-all duration-200 rounded-full shadow-lg opacity-0 bg-gradient-to-br from-red-500 to-red-600 -top-1 -right-1 group-hover:opacity-100 hover:from-red-600 hover:to-red-700 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="ml-1 p-0.5 text-foreground rounded-full transition-all duration-150 hover:bg-black/10 dark:hover:bg-white/10 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Remove tag"
           >
-            ×
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         )}
       </div>
-    );
-  }
 
-  return (
-    <div
-      className={`group flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border backdrop-blur-sm transition-all duration-200 ${
-        onClick
-          ? "cursor-pointer hover:scale-105 hover:shadow-lg hover:border-opacity-50"
-          : ""
-      } ${className}`}
-      style={{
-        ...modernStyles,
-        color: textColor,
-      }}
-      onClick={handleClick}
-    >
+      {/* Animated Tooltip */}
       <div
-        className="w-1.5 h-1.5 rounded-full opacity-70"
-        style={{
-          backgroundColor: baseColor,
-          boxShadow: `0 0 3px rgba(${parseInt(
-            baseColor.slice(1, 3),
-            16
-          )}, ${parseInt(baseColor.slice(3, 5), 16)}, ${parseInt(
-            baseColor.slice(5, 7),
-            16
-          )}, 0.5)`,
-        }}
-      ></div>
-      <span className="font-medium text-foreground">{tag.name}</span>
-      {removable && (
-        <button
-          onClick={handleRemove}
-          disabled={loading}
-          className="ml-1 p-0.5 text-foreground rounded-full transition-all duration-150 hover:bg-black/10 dark:hover:bg-white/10 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Remove tag"
-        >
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      )}
-    </div>
+        ref={tooltipRef}
+        className="px-2 py-1 text-xs font-medium text-white rounded-md pointer-events-none bg-black/90 backdrop-blur-sm whitespace-nowrap"
+        style={{ display: "none" }}
+      >
+        {hoveredTag}
+        <div className="absolute w-2 h-2 transform rotate-45 -translate-x-1/2 translate-y-1/2 bg-black/90 left-1/2 bottom-full"></div>
+      </div>
+    </>
   );
 }
 

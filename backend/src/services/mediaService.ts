@@ -1075,20 +1075,14 @@ export class MediaService {
 
   // Lightweight version for gallery view - only loads essential data
   private async enrichMediaFileLight(row: any): Promise<MediaFile> {
-    // Get tags count only (not full tag data)
+    // Get actual tags with their colors for proper display
     const tagsQuery = `
-      SELECT COUNT(*) as tag_count
-      FROM media_tags mt
+      SELECT t.id, t.name, t.color
+      FROM tags t
+      JOIN media_tags mt ON t.id = mt.tag_id
       WHERE mt.media_file_id = $1
     `;
     const tagsResult = await db.query(tagsQuery, [row.id]);
-    const tagCount = parseInt(tagsResult.rows[0].tag_count || 0);
-
-    // Create minimal tags array for display
-    const tags =
-      tagCount > 0
-        ? Array(tagCount).fill({ id: "", name: "tag", color: "" })
-        : [];
 
     // Include minimal EXIF data with at least dateTaken for proper date display
     const exifData: ExifData | undefined = row.date_taken
@@ -1119,7 +1113,7 @@ export class MediaService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       exifData,
-      tags,
+      tags: tagsResult.rows,
       collections: [],
     };
   }
