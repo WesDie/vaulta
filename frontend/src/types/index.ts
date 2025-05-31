@@ -69,6 +69,15 @@ export interface MediaQuery {
   search?: string;
   sortBy?: "createdAt" | "updatedAt" | "filename" | "fileSize" | "dateTaken";
   sortOrder?: "asc" | "desc";
+  // EXIF filters
+  camera?: string;
+  lens?: string;
+  focalLengthMin?: number;
+  focalLengthMax?: number;
+  apertureMin?: number;
+  apertureMax?: number;
+  isoMin?: number;
+  isoMax?: number;
 }
 
 export interface ViewMode {
@@ -83,6 +92,15 @@ export interface FilterState {
   mimeType: string;
   sortBy: "createdAt" | "updatedAt" | "filename" | "fileSize" | "dateTaken";
   sortOrder: "asc" | "desc";
+  // EXIF filters
+  camera: string;
+  lens: string;
+  focalLengthMin: number | null;
+  focalLengthMax: number | null;
+  apertureMin: number | null;
+  apertureMax: number | null;
+  isoMin: number | null;
+  isoMax: number | null;
 }
 
 export interface StorageInfo {

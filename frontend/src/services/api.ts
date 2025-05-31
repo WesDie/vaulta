@@ -74,6 +74,19 @@ export const mediaApi = {
     const response = await api.post(`/api/media/${id}/extract-exif`);
     return response.data;
   },
+
+  getExifFilterOptions: async (): Promise<
+    ApiResponse<{
+      cameras: string[];
+      lenses: string[];
+      focalLengthRange: { min: number; max: number } | null;
+      apertureRange: { min: number; max: number } | null;
+      isoRange: { min: number; max: number } | null;
+    }>
+  > => {
+    const response = await api.get("/api/media/exif-filter-options");
+    return response.data;
+  },
 };
 
 // Tags API

@@ -6,7 +6,16 @@ interface EmptyStateProps {
 
 export function EmptyState({ filters }: EmptyStateProps) {
   const hasFilters =
-    filters.search || filters.selectedTags.length > 0 || filters.mimeType;
+    filters.selectedTags.length > 0 ||
+    filters.mimeType ||
+    filters.camera ||
+    filters.lens ||
+    filters.focalLengthMin !== null ||
+    filters.focalLengthMax !== null ||
+    filters.apertureMin !== null ||
+    filters.apertureMax !== null ||
+    filters.isoMin !== null ||
+    filters.isoMax !== null;
 
   const isPhotoDateSort = filters.sortBy === "dateTaken";
 

@@ -19,6 +19,15 @@ const filtersToQuery = (filters: FilterState): MediaQuery => ({
   sortBy: filters.sortBy,
   sortOrder: filters.sortOrder,
   limit: 1000, // Increased limit for better infinite loading performance
+  // EXIF filters
+  camera: filters.camera || undefined,
+  lens: filters.lens || undefined,
+  focalLengthMin: filters.focalLengthMin || undefined,
+  focalLengthMax: filters.focalLengthMax || undefined,
+  apertureMin: filters.apertureMin || undefined,
+  apertureMax: filters.apertureMax || undefined,
+  isoMin: filters.isoMin || undefined,
+  isoMax: filters.isoMax || undefined,
 });
 
 export const useMediaFiles = (filters: FilterState) => {

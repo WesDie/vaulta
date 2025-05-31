@@ -8,6 +8,15 @@ export const DEFAULT_FILTERS: FilterState = {
   mimeType: "",
   sortBy: "dateTaken",
   sortOrder: "desc",
+  // EXIF filters
+  camera: "",
+  lens: "",
+  focalLengthMin: null,
+  focalLengthMax: null,
+  apertureMin: null,
+  apertureMax: null,
+  isoMin: null,
+  isoMax: null,
 };
 
 export const DEFAULT_VIEW_MODE: ViewMode = {
