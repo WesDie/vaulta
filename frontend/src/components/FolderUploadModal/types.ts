@@ -7,11 +7,16 @@ export interface FileInfo {
   file: File;
 }
 
-export interface FolderUploadModalProps {
+export type UploadMode = "files" | "folder";
+
+export interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadComplete?: (result: { uploaded: number; skipped: number }) => void;
 }
+
+// Keep the old interface for backward compatibility
+export interface FolderUploadModalProps extends UploadModalProps {}
 
 export interface UploadProgressState {
   current: number;

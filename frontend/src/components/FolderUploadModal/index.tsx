@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
-import { FileInfo, FolderUploadModalProps } from "./types";
+import { FileInfo, UploadModalProps } from "./types";
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from "./constants";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { FileSelectionArea } from "./components/FileSelectionArea";
@@ -12,11 +12,11 @@ import { FileListPanel } from "./components/FileListPanel";
 import { UploadProgress } from "./components/UploadProgress";
 import { CompletionSummary } from "./components/CompletionSummary";
 
-export function FolderUploadModal({
+export function UploadModal({
   isOpen,
   onClose,
   onUploadComplete,
-}: FolderUploadModalProps) {
+}: UploadModalProps) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedExtensions, setSelectedExtensions] = useState<Set<string>>(
@@ -68,12 +68,7 @@ export function FolderUploadModal({
     };
   }, [isOpen]);
 
-  const handleFolderSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const fileList = event.target.files;
-    if (!fileList) return;
-
+  const processFileList = (fileList: FileList) => {
     const mediaFiles: FileInfo[] = [];
     const extensions = new Set<string>();
 
@@ -101,6 +96,22 @@ export function FolderUploadModal({
     setFiles(mediaFiles);
     setSelectedExtensions(new Set(extensions)); // Select all by default
     setSelectedFiles(new Set(mediaFiles.map((f) => f.path))); // Select all files by default
+  };
+
+  const handleFolderSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const fileList = event.target.files;
+    if (!fileList) return;
+    processFileList(fileList);
+  };
+
+  const handleFilesSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const fileList = event.target.files;
+    if (!fileList) return;
+    processFileList(fileList);
   };
 
   const handleExtensionToggle = (extension: string, checked: boolean) => {
@@ -186,10 +197,10 @@ export function FolderUploadModal({
         <div className="flex items-center justify-between p-6 border-b border-border bg-background/80">
           <div>
             <h2 className="text-xl font-semibold text-foreground">
-              Upload Folder
+              Upload Media
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Select a folder and choose which files to upload
+              Select files or a folder and choose which files to upload
             </p>
           </div>
           <button
@@ -215,7 +226,10 @@ export function FolderUploadModal({
 
         <div className="flex-1 overflow-hidden bg-background">
           {files.length === 0 ? (
-            <FileSelectionArea onFolderSelect={handleFolderSelect} />
+            <FileSelectionArea
+              onFolderSelect={handleFolderSelect}
+              onFilesSelect={handleFilesSelect}
+            />
           ) : (
             /* File Management */
             <div className="flex h-[500px] bg-background">
@@ -260,7 +274,7 @@ export function FolderUploadModal({
                   onClick={handleUploadMore}
                   className="text-sm transition-colors text-muted-foreground hover:text-foreground"
                 >
-                  ← Choose Different Folder
+                  ← Choose Different Files
                 </button>
                 <div className="flex gap-3">
                   <button
@@ -292,3 +306,6 @@ export function FolderUploadModal({
 
   return null;
 }
+
+// Export with the old name for backward compatibility
+export const FolderUploadModal = UploadModal;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { api } from "@/services/api";
-import { FolderUploadModal } from "./FolderUploadModal";
+import { UploadModal } from "./FolderUploadModal";
 
 interface UploadButtonProps {
   onUploadComplete?: () => void;
@@ -10,42 +10,7 @@ interface UploadButtonProps {
 
 export function UploadButton({ onUploadComplete }: UploadButtonProps) {
   const [uploading, setUploading] = useState(false);
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-
-    try {
-      for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        await api.post("/api/media/upload", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-      }
-
-      onUploadComplete?.();
-
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Upload failed. Please try again.");
-    } finally {
-      setUploading(false);
-    }
-  };
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const handleScanDirectory = async () => {
     setUploading(true);
@@ -63,7 +28,7 @@ export function UploadButton({ onUploadComplete }: UploadButtonProps) {
     }
   };
 
-  const handleFolderUploadComplete = (result: {
+  const handleUploadComplete = (result: {
     uploaded: number;
     skipped: number;
   }) => {
@@ -101,49 +66,10 @@ export function UploadButton({ onUploadComplete }: UploadButtonProps) {
   return (
     <>
       <div className="flex gap-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-
         <button
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setShowUploadModal(true)}
           disabled={uploading}
           className={`${buttonBaseClasses} bg-accent hover:bg-accent/90 text-accent-foreground`}
-        >
-          {uploading ? (
-            <>
-              <div className="w-4 h-4 border-2 rounded-full border-accent-foreground border-t-transparent animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Upload Files
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={() => setShowFolderModal(true)}
-          disabled={uploading}
-          className={`${buttonBaseClasses} bg-blue-600 hover:bg-blue-700 text-white`}
         >
           <svg
             className="w-4 h-4"
@@ -155,10 +81,10 @@ export function UploadButton({ onUploadComplete }: UploadButtonProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5L12 5H5a2 2 0 00-2 2z"
+              d="M12 4v16m8-8H4"
             />
           </svg>
-          Upload Folder
+          Upload Media
         </button>
 
         <button
@@ -192,10 +118,10 @@ export function UploadButton({ onUploadComplete }: UploadButtonProps) {
         </button>
       </div>
 
-      <FolderUploadModal
-        isOpen={showFolderModal}
-        onClose={() => setShowFolderModal(false)}
-        onUploadComplete={handleFolderUploadComplete}
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploadComplete={handleUploadComplete}
       />
     </>
   );
