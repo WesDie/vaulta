@@ -76,4 +76,13 @@ export interface MediaQuery {
   search?: string;
   sortBy?: "createdAt" | "updatedAt" | "filename" | "fileSize" | "dateTaken";
   sortOrder?: "asc" | "desc";
+  // EXIF filters
+  camera?: string;
+  lens?: string;
+  focalLengthMin?: number;
+  focalLengthMax?: number;
+  apertureMin?: number;
+  apertureMax?: number;
+  isoMin?: number;
+  isoMax?: number;
 }

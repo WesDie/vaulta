@@ -28,6 +28,15 @@ export class MediaService {
       search,
       sortBy = "dateTaken",
       sortOrder = "desc",
+      // EXIF filters
+      camera,
+      lens,
+      focalLengthMin,
+      focalLengthMax,
+      apertureMin,
+      apertureMax,
+      isoMin,
+      isoMax,
     } = query;
     const offset = (page - 1) * limit;
 
@@ -65,6 +74,55 @@ export class MediaService {
         WHERE c.name = ANY($${paramIndex})
       )`);
       queryParams.push(collections);
+      paramIndex++;
+    }
+
+    // EXIF filters
+    if (camera) {
+      whereConditions.push(`e.camera ILIKE $${paramIndex}`);
+      queryParams.push(`%${camera}%`);
+      paramIndex++;
+    }
+
+    if (lens) {
+      whereConditions.push(`e.lens ILIKE $${paramIndex}`);
+      queryParams.push(`%${lens}%`);
+      paramIndex++;
+    }
+
+    if (focalLengthMin !== undefined && focalLengthMin !== null) {
+      whereConditions.push(`e.focal_length >= $${paramIndex}`);
+      queryParams.push(focalLengthMin);
+      paramIndex++;
+    }
+
+    if (focalLengthMax !== undefined && focalLengthMax !== null) {
+      whereConditions.push(`e.focal_length <= $${paramIndex}`);
+      queryParams.push(focalLengthMax);
+      paramIndex++;
+    }
+
+    if (apertureMin !== undefined && apertureMin !== null) {
+      whereConditions.push(`e.aperture >= $${paramIndex}`);
+      queryParams.push(apertureMin);
+      paramIndex++;
+    }
+
+    if (apertureMax !== undefined && apertureMax !== null) {
+      whereConditions.push(`e.aperture <= $${paramIndex}`);
+      queryParams.push(apertureMax);
+      paramIndex++;
+    }
+
+    if (isoMin !== undefined && isoMin !== null) {
+      whereConditions.push(`e.iso >= $${paramIndex}`);
+      queryParams.push(isoMin);
+      paramIndex++;
+    }
+
+    if (isoMax !== undefined && isoMax !== null) {
+      whereConditions.push(`e.iso <= $${paramIndex}`);
+      queryParams.push(isoMax);
       paramIndex++;
     }
 
@@ -1064,5 +1122,92 @@ export class MediaService {
       tags,
       collections: [],
     };
+  }
+
+  // Get available EXIF filter options for dropdowns
+  async getExifFilterOptions(): Promise<{
+    cameras: string[];
+    lenses: string[];
+    focalLengthRange: { min: number; max: number } | null;
+    apertureRange: { min: number; max: number } | null;
+    isoRange: { min: number; max: number } | null;
+  }> {
+    try {
+      // Get unique cameras
+      const camerasQuery = `
+        SELECT DISTINCT camera 
+        FROM exif_data 
+        WHERE camera IS NOT NULL AND camera != ''
+        ORDER BY camera
+      `;
+      const camerasResult = await db.query(camerasQuery);
+      const cameras = camerasResult.rows.map((row) => row.camera);
+
+      // Get unique lenses
+      const lensesQuery = `
+        SELECT DISTINCT lens 
+        FROM exif_data 
+        WHERE lens IS NOT NULL AND lens != ''
+        ORDER BY lens
+      `;
+      const lensesResult = await db.query(lensesQuery);
+      const lenses = lensesResult.rows.map((row) => row.lens);
+
+      // Get focal length range
+      const focalLengthQuery = `
+        SELECT MIN(focal_length) as min, MAX(focal_length) as max
+        FROM exif_data 
+        WHERE focal_length IS NOT NULL
+      `;
+      const focalLengthResult = await db.query(focalLengthQuery);
+      const focalLengthRange =
+        focalLengthResult.rows[0].min !== null
+          ? {
+              min: parseFloat(focalLengthResult.rows[0].min),
+              max: parseFloat(focalLengthResult.rows[0].max),
+            }
+          : null;
+
+      // Get aperture range
+      const apertureQuery = `
+        SELECT MIN(aperture) as min, MAX(aperture) as max
+        FROM exif_data 
+        WHERE aperture IS NOT NULL
+      `;
+      const apertureResult = await db.query(apertureQuery);
+      const apertureRange =
+        apertureResult.rows[0].min !== null
+          ? {
+              min: parseFloat(apertureResult.rows[0].min),
+              max: parseFloat(apertureResult.rows[0].max),
+            }
+          : null;
+
+      // Get ISO range
+      const isoQuery = `
+        SELECT MIN(iso) as min, MAX(iso) as max
+        FROM exif_data 
+        WHERE iso IS NOT NULL
+      `;
+      const isoResult = await db.query(isoQuery);
+      const isoRange =
+        isoResult.rows[0].min !== null
+          ? {
+              min: parseInt(isoResult.rows[0].min),
+              max: parseInt(isoResult.rows[0].max),
+            }
+          : null;
+
+      return {
+        cameras,
+        lenses,
+        focalLengthRange,
+        apertureRange,
+        isoRange,
+      };
+    } catch (error) {
+      console.error("Error getting EXIF filter options:", error);
+      throw error;
+    }
   }
 }

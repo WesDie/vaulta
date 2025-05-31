@@ -35,6 +35,27 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Get EXIF filter options for dropdowns
+  fastify.get(
+    "/media/exif-filter-options",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const options = await mediaService.getExifFilterOptions();
+
+        reply.send({
+          success: true,
+          data: options,
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        reply.status(500).send({
+          success: false,
+          error: "Failed to fetch EXIF filter options",
+        });
+      }
+    }
+  );
+
   // Get specific media file by ID
   fastify.get(
     "/media/:id",
