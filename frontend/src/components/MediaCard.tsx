@@ -183,8 +183,8 @@ export function MediaCard({
   return (
     <div
       ref={cardRef}
-      className={`relative w-full h-full overflow-hidden transition-all duration-300 cursor-pointer group rounded-xl ${
-        selectionMode ? "selection-mode-card" : ""
+      className={`relative w-full h-full overflow-hidden transition-all duration-300 cursor-pointer group ${
+        selectionMode ? "selection-mode-card rounded-xl" : ""
       }`}
       style={{ boxSizing: "border-box" }}
       onClick={handleClick}
@@ -193,7 +193,7 @@ export function MediaCard({
       onMouseLeave={handleMouseLeave}
     >
       {/* Media Preview */}
-      <div className="relative w-full h-full overflow-hidden rounded-xl">
+      <div className="relative w-full h-full overflow-hidden">
         {(isImage || media.thumbnailPath) && !imageError ? (
           <OptimizedImage
             ref={imageRef}
