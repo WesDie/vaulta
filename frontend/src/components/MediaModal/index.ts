@@ -4,6 +4,7 @@ export { MetadataSidebar } from "./MetadataSidebar";
 export { MediaControls } from "./MediaControls";
 export { ZoomIndicator } from "./ZoomIndicator";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { TagEditor } from "./TagEditor";
 export { useZoom } from "./useZoom";
 export { useProgressiveImageLoad } from "./useProgressiveImageLoad";
 export type * from "./types";

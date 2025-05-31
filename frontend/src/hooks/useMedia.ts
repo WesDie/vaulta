@@ -121,3 +121,16 @@ export const useRemoveTags = () => {
     }
   );
 };
+
+export const useCreateTag = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    (tag: { name: string; color?: string }) => tagsApi.createTag(tag),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["tags"]);
+      },
+    }
+  );
+};

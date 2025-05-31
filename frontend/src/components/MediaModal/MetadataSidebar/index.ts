@@ -1,0 +1,1 @@
+export { MetadataSidebar } from "./MetadataSidebar";

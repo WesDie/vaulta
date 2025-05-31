@@ -313,9 +313,31 @@ export function MediaCard({
         {/* Tags indicator */}
         {media.tags && media.tags.length > 0 && (
           <div className="absolute top-2 right-2">
-            <div className="px-2 py-1 text-xs font-medium text-white rounded-lg bg-black/70">
-              {media.tags.length}
-            </div>
+            {cardWidth >= 200 ? (
+              /* Show tag names for larger cards */
+              <div className="flex flex-wrap gap-1 max-w-[140px]">
+                {media.tags.slice(0, 3).map((tag, index) => (
+                  <span
+                    key={tag.id || index}
+                    className="px-1.5 py-0.5 text-xs font-medium text-white rounded-md truncate max-w-[60px]"
+                    style={{ backgroundColor: tag.color || "#6B7280" }}
+                    title={tag.name}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+                {media.tags.length > 3 && (
+                  <span className="px-1.5 py-0.5 text-xs font-medium text-white rounded-md bg-black/70">
+                    +{media.tags.length - 3}
+                  </span>
+                )}
+              </div>
+            ) : (
+              /* Show count for smaller cards */
+              <div className="px-2 py-1 text-xs font-medium text-white rounded-lg bg-black/70">
+                {media.tags.length}
+              </div>
+            )}
           </div>
         )}
       </div>

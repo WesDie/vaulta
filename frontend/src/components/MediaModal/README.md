@@ -1,163 +1,214 @@
-# MediaModal Component
+# MediaModal Component Suite
 
-A comprehensive media modal component for viewing images and videos with advanced features including progressive image loading, zoom/pan capabilities, metadata display, and keyboard navigation.
+## Overview
 
-## Features
+The MediaModal is a comprehensive media viewing and management interface that has been optimized with a modular folder structure for better maintainability and reusability.
 
-### 🚀 Progressive Image Loading
+## Folder Structure
 
-- **Instant Thumbnails**: Shows low-quality thumbnails immediately for fast navigation
-- **Background Loading**: Loads full-resolution images progressively in the background
-- **Smart Caching**: Caches loaded images for instant display on re-visit
-- **Quality Indicators**: Shows current image quality status (Preview/Full Quality)
+```
+MediaModal/
+├── index.ts                    # Main exports
+├── types.ts                    # TypeScript definitions
+├── MediaModal.tsx              # Main modal component
+├── MediaViewer.tsx             # Image/video viewer with zoom
+├── MediaControls.tsx           # Navigation and action controls
+├── ZoomIndicator.tsx           # Zoom level indicator
+├── ConfirmDialog.tsx           # Delete confirmation dialog
+├── useProgressiveImageLoad.ts  # Progressive image loading hook
+├── useZoom.ts                  # Zoom and pan functionality hook
+├── README.md                   # This documentation
+├── MetadataSidebar/            # Metadata sidebar components
+│   ├── index.ts
+│   ├── MetadataSidebar.tsx    # Main sidebar component
+│   └── components/             # Modular sidebar components
+│       ├── QuickStats.tsx      # File size, type, dimensions
+│       ├── FileDetails.tsx     # MIME type, creation date
+│       ├── ExifData.tsx        # Camera and EXIF information
+│       ├── LocationData.tsx    # GPS location data
+│       ├── Collections.tsx     # Collection membership
+│       └── DownloadSection.tsx # Download original file
+└── TagEditor/                  # Tag management components
+    ├── index.ts
+    ├── TagEditor.tsx           # Main tag editor component
+    └── components/             # Modular tag components
+        ├── AvailableTags.tsx   # List of available tags to add
+        └── CreateTagForm.tsx   # Form to create new tags
+```
 
-### 📱 Optimized Navigation
+## Global Tag Components
 
-- **Zero-Wait Navigation**: Switch between images instantly using cached thumbnails
-- **Preloading**: Automatically preloads adjacent images for seamless browsing
-- **Auto-Reset**: Zoom/pan resets automatically when navigating to new images
-- **Keyboard Shortcuts**: Arrow keys, ESC, R (reset), I (info), Delete
+The tag system has been extracted into reusable components located at `@/components/ui/Tag`:
 
-### 🔍 Advanced Zoom & Pan
-
-- **Smooth Zoom**: Mouse wheel and pinch-to-zoom support
-- **Pan & Drag**: Click and drag to pan when zoomed in
-- **Touch Support**: Full touch gesture support for mobile devices
-- **Zoom Indicator**: Visual feedback for current zoom level
-
-### 📊 Rich Metadata
-
-- **EXIF Data**: Camera settings, GPS location, and technical details
-- **File Information**: File size, dimensions, creation dates
-- **Tag Management**: Add, remove, and manage tags
-- **Collection Support**: Organize media into collections
-
-## Usage
-
-### Basic Usage
+### Tag Component
 
 ```tsx
-import { MediaModal, useMediaModal } from "@/components/MediaModal";
+import { Tag } from "@/components/ui";
 
-function MediaGallery({ mediaFiles }) {
-  const {
-    selectedMedia,
-    isModalOpen,
-    openModal,
-    closeModal,
-    navigateToMedia,
-    hasPrevious,
-    hasNext,
-    mediaFiles: allMediaFiles,
-  } = useMediaModal(mediaFiles);
+// Default size tag (for editor)
+<Tag
+  tag={tagObject}
+  removable={true}
+  onRemove={(tagId) => handleRemove(tagId)}
+  loading={false}
+/>
 
+// Compact size tag (for media cards)
+<Tag
+  tag={tagObject}
+  variant="compact"
+  onClick={(tagId) => handleTagClick(tagId)}
+/>
+```
+
+### TagList Component
+
+```tsx
+import { TagList } from "@/components/ui";
+
+// Full size tag list with remove functionality
+<TagList
+  tags={mediaTags}
+  removable={true}
+  onRemove={handleRemoveTag}
+  loading={false}
+/>
+
+// Compact tag list for media cards (with max display limit)
+<TagList
+  tags={mediaTags}
+  variant="compact"
+  maxDisplay={3}
+  onClick={handleTagClick}
+/>
+```
+
+## Tag Variants
+
+### Default Variant
+
+- Full-sized tags with text labels
+- Used in the MediaModal TagEditor
+- Shows tag name with colored dot indicator
+- Supports remove button when `removable=true`
+
+### Compact Variant
+
+- Small circular tags showing only color
+- Perfect for media cards and grid views
+- Shows tag name on hover
+- Takes up minimal space
+- Supports remove button when `removable=true`
+
+## Usage Examples
+
+### In Media Cards
+
+```tsx
+import { TagList } from "@/components/ui";
+
+function MediaCard({ media }) {
   return (
-    <>
-      {/* Your gallery grid */}
-      {mediaFiles.map((media) => (
-        <img
-          key={media.id}
-          src={`/api/media/${media.id}/image?size=thumb`}
-          onClick={() => openModal(media)}
+    <div className="media-card">
+      <img src={media.thumbnailUrl} alt={media.filename} />
+      <div className="media-info">
+        <h3>{media.filename}</h3>
+        <TagList
+          tags={media.tags}
+          variant="compact"
+          maxDisplay={3}
+          onClick={(tagId) => filterByTag(tagId)}
+          className="mt-2"
         />
-      ))}
-
-      {/* Enhanced Modal with Progressive Loading */}
-      <MediaModal
-        media={selectedMedia}
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onPrevious={() => navigateToMedia("previous")}
-        onNext={() => navigateToMedia("next")}
-        hasPrevious={hasPrevious}
-        hasNext={hasNext}
-        mediaFiles={allMediaFiles} // Pass for preloading optimization
-        onDelete={(id) => handleDelete(id)}
-      />
-    </>
+      </div>
+    </div>
   );
 }
 ```
 
-### Progressive Loading Hook
+### In Tag Management
 
 ```tsx
-import { useProgressiveImageLoad } from "@/components/MediaModal";
+import { TagList } from "@/components/ui";
 
-function CustomImageViewer({ mediaId }) {
-  const { loadState, preloadImage } = useProgressiveImageLoad({
-    mediaId,
-    thumbnailUrl: `/api/media/${mediaId}/image?size=thumb`,
-    fullImageUrl: `/originals/${filename}`,
-    priority: true,
-  });
-
-  // Access loading states
-  const { thumbnailLoaded, fullImageLoaded, error } = loadState;
+function TagManager({ selectedMedia }) {
+  return (
+    <div className="tag-manager">
+      <h3>Applied Tags</h3>
+      <TagList
+        tags={selectedMedia.tags}
+        removable={true}
+        onRemove={handleRemoveTag}
+        loading={isUpdating}
+      />
+    </div>
+  );
 }
 ```
+
+## Features
+
+### MediaModal
+
+- ✅ Full-screen media viewing
+- ✅ Zoom and pan functionality for images
+- ✅ Keyboard navigation support
+- ✅ Delete confirmation dialog
+- ✅ Progressive image loading
+- ✅ Preloading of adjacent images
+- ✅ GSAP animations
+
+### MetadataSidebar
+
+- ✅ Modular component structure
+- ✅ Quick stats (size, type, dimensions)
+- ✅ File details with creation date
+- ✅ EXIF data extraction and display
+- ✅ GPS location data (when available)
+- ✅ Collection membership display
+- ✅ Download original file
+- ✅ Animated expand/collapse
+
+### TagEditor
+
+- ✅ Reusable Tag components
+- ✅ Two size variants (default/compact)
+- ✅ Search existing tags
+- ✅ Create new tags with color picker
+- ✅ Add/remove tags from media
+- ✅ Real-time preview
+- ✅ Loading states
+
+### Tag Components
+
+- ✅ Accessible color contrast
+- ✅ Hover states and transitions
+- ✅ Support for both light and dark themes
+- ✅ Responsive design
+- ✅ TypeScript support
+- ✅ Customizable styling
 
 ## Performance Optimizations
 
-### Image Loading Strategy
-
-1. **Immediate Thumbnail**: Shows compressed thumbnail instantly
-2. **Progressive Enhancement**: Loads full-resolution image in background
-3. **Smooth Transition**: Fades from thumbnail to full image
-4. **Smart Caching**: Prevents re-downloading of loaded images
-5. **Preloading**: Loads adjacent images for faster navigation
-
-### Memory Management
-
-- **Automatic Cleanup**: Clears unused image references
-- **Abort Controllers**: Cancels in-flight requests when navigating
-- **Efficient Caching**: Uses WeakMap for automatic garbage collection
-
-### Network Optimization
-
-- **Priority Loading**: Current image loads first, then adjacent images
-- **Bandwidth Aware**: Starts with thumbnails to minimize initial load time
-- **Request Deduplication**: Prevents duplicate requests for same images
-
-## Components
-
-- **MediaModal**: Main modal container with navigation and controls
-- **MediaViewer**: Core image/video display with progressive loading
-- **MediaControls**: Navigation buttons and action controls
-- **MetadataSidebar**: Expandable sidebar with EXIF and file details
-- **ZoomIndicator**: Visual zoom level feedback
+1. **Lazy Loading**: Media data is fetched only when modal opens
+2. **Image Preloading**: Adjacent images are preloaded for smooth navigation
+3. **Progressive Loading**: Images load progressively from thumbnail to full resolution
+4. **Memory Management**: Full media data is cleared when modal closes
+5. **Component Reusability**: Tag components can be used throughout the application
+6. **Modular Structure**: Components can be imported individually to reduce bundle size
 
 ## Keyboard Shortcuts
 
-- **Arrow Keys**: Navigate between images
-- **ESC**: Close modal
-- **R**: Reset zoom/pan
-- **I**: Toggle metadata sidebar
-- **Delete**: Delete current media (if enabled)
-- **Mouse Wheel**: Zoom in/out
-- **Click + Drag**: Pan when zoomed
+- `Escape`: Close modal
+- `←` / `→`: Navigate between media items
+- `Delete`: Show delete confirmation
+- `i`: Toggle metadata sidebar
+- `r`: Reset zoom/pan
+- `+` / `-`: Zoom in/out
 
-## Props
+## Dependencies
 
-### MediaModal Props
-
-```tsx
-interface MediaModalProps {
-  media: MediaFile | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onPrevious?: () => void;
-  onNext?: () => void;
-  hasPrevious?: boolean;
-  hasNext?: boolean;
-  onDelete?: (mediaId: string) => void;
-  mediaFiles?: MediaFile[]; // For preloading optimization
-}
-```
-
-## Browser Support
-
-- **Modern Browsers**: Chrome 80+, Firefox 78+, Safari 14+, Edge 80+
-- **Mobile Support**: iOS Safari 14+, Chrome Mobile 80+
-- **Touch Gestures**: Full support for pinch-to-zoom and pan
-- **Progressive Enhancement**: Graceful fallback for older browsers
+- React 18+
+- GSAP (animations)
+- Tailwind CSS (styling)
+- TypeScript

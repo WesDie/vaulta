@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { MediaService } from "../services/mediaService";
 import { MediaQuery } from "../types";
+import { db } from "../config/database";
 import * as path from "path";
 import * as fs from "fs/promises";
 
@@ -245,11 +246,56 @@ export async function mediaRoutes(fastify: FastifyInstance) {
         const { id } = request.params;
         const { tagIds } = request.body;
 
-        // TODO: Implement adding tags to media file
-        // This would involve inserting records into media_tags table
+        if (!tagIds || !Array.isArray(tagIds) || tagIds.length === 0) {
+          reply.status(400).send({
+            success: false,
+            error: "Tag IDs array is required and must not be empty",
+          });
+          return;
+        }
+
+        // Verify media file exists
+        const mediaFile = await mediaService.getMediaFileById(id);
+        if (!mediaFile) {
+          reply.status(404).send({
+            success: false,
+            error: "Media file not found",
+          });
+          return;
+        }
+
+        // Verify all tags exist
+        const tagCheckQuery = `
+          SELECT id FROM tags WHERE id = ANY($1)
+        `;
+        const tagCheckResult = await db.query(tagCheckQuery, [tagIds]);
+        const existingTagIds = tagCheckResult.rows.map((row: any) => row.id);
+
+        const invalidTagIds = tagIds.filter(
+          (tagId) => !existingTagIds.includes(tagId)
+        );
+        if (invalidTagIds.length > 0) {
+          reply.status(400).send({
+            success: false,
+            error: `Invalid tag IDs: ${invalidTagIds.join(", ")}`,
+          });
+          return;
+        }
+
+        // Insert tags (ignore duplicates)
+        const insertQuery = `
+          INSERT INTO media_tags (media_file_id, tag_id) 
+          VALUES ${tagIds.map((_, index) => `($1, $${index + 2})`).join(", ")}
+          ON CONFLICT (media_file_id, tag_id) DO NOTHING
+        `;
+        await db.query(insertQuery, [id, ...tagIds]);
+
+        // Get updated media file with tags
+        const updatedMediaFile = await mediaService.getMediaFileById(id);
 
         reply.send({
           success: true,
+          data: updatedMediaFile,
           message: "Tags added successfully",
         });
       } catch (error) {
@@ -276,10 +322,37 @@ export async function mediaRoutes(fastify: FastifyInstance) {
         const { id } = request.params;
         const { tagIds } = request.body;
 
-        // TODO: Implement removing tags from media file
+        if (!tagIds || !Array.isArray(tagIds) || tagIds.length === 0) {
+          reply.status(400).send({
+            success: false,
+            error: "Tag IDs array is required and must not be empty",
+          });
+          return;
+        }
+
+        // Verify media file exists
+        const mediaFile = await mediaService.getMediaFileById(id);
+        if (!mediaFile) {
+          reply.status(404).send({
+            success: false,
+            error: "Media file not found",
+          });
+          return;
+        }
+
+        // Remove tags
+        const deleteQuery = `
+          DELETE FROM media_tags 
+          WHERE media_file_id = $1 AND tag_id = ANY($2)
+        `;
+        await db.query(deleteQuery, [id, tagIds]);
+
+        // Get updated media file with tags
+        const updatedMediaFile = await mediaService.getMediaFileById(id);
 
         reply.send({
           success: true,
+          data: updatedMediaFile,
           message: "Tags removed successfully",
         });
       } catch (error) {
