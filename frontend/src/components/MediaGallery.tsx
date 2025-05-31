@@ -393,7 +393,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         </div>
       ) : (
         /* Results info */
-        <div className="flex items-center justify-between flex-shrink-0 py-2 pl-4 border-b">
+        <div className="flex items-center justify-between flex-shrink-0 px-4 py-2 border-b">
           <div className="flex items-center space-x-4">
             <div className="text-sm font-medium text-muted-foreground">
               {mediaFiles.length} of {totalCount}{" "}
