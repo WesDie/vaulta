@@ -89,8 +89,9 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
   // Calculate actual item width to fill container completely with gaps
   const actualItemWidth = useMemo(() => {
     if (isListView || !containerWidth) return containerWidth || 0;
-    const gap = 4; // 2px padding per side
-    return Math.floor((containerWidth - gap * columnCount) / columnCount);
+    // Each column should take up the full available width divided by column count
+    // The GridItem components handle their own 2px padding with box-sizing: border-box
+    return Math.floor(containerWidth / columnCount);
   }, [isListView, containerWidth, columnCount]);
 
   const itemSize = getItemSize(viewMode.size);
@@ -379,7 +380,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
     <div className="flex flex-col w-full h-full">
       {/* Selection toolbar */}
       {selectionMode ? (
-        <div className="flex-shrink-0 px-4 py-2">
+        <div className="flex-shrink-0 py-2 pl-4">
           <SelectionToolbar
             selectedCount={selectedItems.size}
             totalCount={mediaFiles.length}
@@ -392,7 +393,7 @@ export function MediaGallery({ filters, viewMode }: MediaGalleryProps) {
         </div>
       ) : (
         /* Results info */
-        <div className="flex items-center justify-between flex-shrink-0 px-4 py-2 border-b">
+        <div className="flex items-center justify-between flex-shrink-0 py-2 pl-4 border-b">
           <div className="flex items-center space-x-4">
             <div className="text-sm font-medium text-muted-foreground">
               {mediaFiles.length} of {totalCount}{" "}

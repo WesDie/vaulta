@@ -50,7 +50,7 @@ export function ListView({
 
   return (
     <div className="w-full h-full overflow-y-auto">
-      <div className="w-full p-2 space-y-1">
+      <div className="w-full py-2 pl-2 pr-0 space-y-1">
         {mediaFiles.map((media) => {
           const displayDate = getDisplayDate(media);
           return (
